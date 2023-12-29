@@ -1,0 +1,40 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v.*.*.*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout git repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.17.1
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+            frontend/package-lock.json
+            shared/package-lock.json
+
+      - name: Build Angular
+        run: |
+          npm ci
+          npm run build:frontend:prod
+
+      - name: Deploy
+        uses: w9jds/firebase-action@v11.24.1
+        with:
+          args: deploy --only hosting --project default
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FIREPLAN }}
