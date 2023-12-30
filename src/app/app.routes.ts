@@ -1,3 +1,7 @@
 import { Routes } from '@angular/router';
 
-export const routes: Routes = [];
+import { OverviewComponent } from './pages/overview/overview.component';
+
+export const routes: Routes = [
+  { path: '', component: OverviewComponent, data: { title: 'Overview' } }
+];
