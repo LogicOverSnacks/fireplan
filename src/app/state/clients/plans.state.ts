@@ -2,11 +2,16 @@ import { Selector, StateContext } from '@ngxs/store';
 
 import { ClientAction, ClientsState } from '../clients.state';
 import { Client } from '../clients.state.model';
-import { Plan } from './plans.state.model';
+import { FullPlan, Plan } from './plans.state.model';
 
-export class AddOrUpdatePlan {
-  static readonly type = '[Plans] AddOrUpdatePlan';
+export class AddOrReplacePlan {
+  static readonly type = '[Plans] AddOrReplacePlan';
   constructor(public id: string, public plan: Plan) {}
+}
+
+export class UpdatePlan {
+  static readonly type = '[Plans] UpdatePlan';
+  constructor(public id: string, public inheritsFrom: string | null, public name: string) {}
 }
 
 export class DeletePlan {
@@ -17,16 +22,6 @@ export class DeletePlan {
 export class ChangeSelectedPlan {
   static readonly type = '[Plans] ChangeSelectedPlan';
   constructor(public id: string | null) {}
-}
-
-export class UpdatePlanParent {
-  static readonly type = '[Plans] UpdatePlanParent';
-  constructor(public id: string, public parentId: string | null) {}
-}
-
-export class UpdatePlanName {
-  static readonly type = '[Plans] UpdatePlanName';
-  constructor(public id: string, public name: string) {}
 }
 
 export class PlansState {
@@ -43,18 +38,66 @@ export class PlansState {
   @Selector([ClientsState.currentClient])
   static currentPlan(client: Client) {
     if (client.selectedPlanId === null) throw new Error(`No plan selected`);
-    return client.plans[client.selectedPlanId];
+    return PlansState.unrollPlan(client.plans, client.plans[client.selectedPlanId]);
   }
 
-  @ClientAction(AddOrUpdatePlan)
-  addOrUpdatePlan(ctx: StateContext<Client>, action: AddOrUpdatePlan) {
-    ctx.setState(client => {
-      const newClient = { ...client };
-      if (newClient.plans[action.id])
-        throw new Error(`Plan with id ${action.id} already exists`);
+  static unrollPlan(
+    plans: Record<string, Plan>,
+    plan: Plan
+  ): Omit<FullPlan, 'inheritsFrom'> & { inheritsFrom: string | null; } {
+    if (plan.inheritsFrom === null) return plan;
 
-      newClient.plans[action.id] = action.plan;
-      return newClient;
+    return {
+      ...this.unrollPlan(plans, plans[plan.inheritsFrom]),
+      ...plan
+    };
+  }
+
+  @ClientAction(AddOrReplacePlan)
+  addOrReplacePlan(ctx: StateContext<Client>, action: AddOrReplacePlan) {
+    ctx.setState(client => ({
+      ...client,
+      plans: {
+        ...client.plans,
+        [action.id]: action.plan
+      }
+    }));
+  }
+
+  @ClientAction(UpdatePlan)
+  updatePlan(ctx: StateContext<Client>, action: UpdatePlan) {
+    ctx.setState(client => {
+      const plan = client.plans[action.id];
+      if (!plan)
+        throw new Error(`Plan with id ${action.id} doesn't exist`);
+
+      let newPlan: Plan;
+
+      if (action.inheritsFrom === null) {
+        if (!plan.scheme || !plan.stages)
+          throw new Error(`Cannot remove parent from plan with id ${action.id} because there are missing parts`);
+
+        newPlan = {
+          inheritsFrom: null,
+          name: action.name,
+          scheme: plan.scheme,
+          stages: plan.stages
+        };
+      } else {
+        newPlan = {
+          ...plan,
+          inheritsFrom: action.inheritsFrom,
+          name: action.name
+        };
+      }
+
+      return {
+        ...client,
+        plans: {
+          ...client.plans,
+          [action.id]: newPlan
+        }
+      };
     });
   }
 
@@ -63,9 +106,25 @@ export class PlansState {
     ctx.setState(client => {
       const newClient = { ...client };
 
+      const removedPlan = newClient.plans[action.id];
       delete newClient.plans[action.id];
+
       if (newClient.selectedPlanId === action.id)
         newClient.selectedPlanId = null;
+
+      for (const id of Object.keys(newClient.plans)) {
+        if (newClient.plans[id].inheritsFrom === action.id) {
+          if (removedPlan.inheritsFrom === null) {
+            newClient.plans[id] = {
+              ...removedPlan,
+              ...newClient.plans[id],
+              inheritsFrom: null
+            };
+          } else {
+            newClient.plans[id].inheritsFrom = removedPlan.inheritsFrom;
+          }
+        }
+      }
 
       return newClient;
     });
@@ -79,43 +138,5 @@ export class PlansState {
         ? action.id
         : null
     }));
-  }
-
-  @ClientAction(UpdatePlanParent)
-  updatePlanParent(ctx: StateContext<Client>, action: UpdatePlanParent) {
-    ctx.setState(client => {
-      const plan = client.plans[action.id];
-      if (!plan) throw new Error(`Plan with id ${action.id} doesn't exist`);
-
-      return {
-        ...client,
-        plans: {
-          ...client.plans,
-          [action.id]: {
-            ...plan,
-            inheritsFrom: action.parentId
-          }
-        }
-      };
-    });
-  }
-
-  @ClientAction(UpdatePlanName)
-  updatePlanName(ctx: StateContext<Client>, action: UpdatePlanName) {
-    ctx.setState(client => {
-      const plan = client.plans[action.id];
-      if (!plan) throw new Error(`Plan with id ${action.id} doesn't exist`);
-
-      return {
-        ...client,
-        plans: {
-          ...client.plans,
-          [action.id]: {
-            ...plan,
-            name: action.name
-          }
-        }
-      };
-    });
   }
 }

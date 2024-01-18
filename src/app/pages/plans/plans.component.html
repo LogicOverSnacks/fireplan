@@ -1,0 +1,15 @@
+<app-page-title (add)="addPlan()">Plans</app-page-title>
+
+<mat-list>
+  @for (plan of plans | async | keyvalue; track plan.key) {
+    <mat-list-item>
+      <span class="name">{{plan.value.name}}</span>
+      <button mat-icon-button matListItemMeta (click)="editPlan(plan.key, plan.value)" matTooltip="Edit">
+        <mat-icon>edit</mat-icon>
+      </button>
+      <button mat-icon-button matListItemMeta (click)="deletePlan(plan.key)" matTooltip="Delete">
+        <mat-icon>delete</mat-icon>
+      </button>
+    </mat-list-item>
+  }
+</mat-list>

@@ -1,10 +1,12 @@
+<app-page-title (add)="addPerson()">People</app-page-title>
 
 <mat-list>
   @for (person of people | async; track person.id) {
     <mat-list-item>
-      {{person.name}}
+      <span class="name">{{person.name}}</span>
+      <button mat-icon-button matListItemMeta (click)="editPerson(person)" matTooltip="Edit">
+        <mat-icon>edit</mat-icon>
+      </button>
     </mat-list-item>
   }
 </mat-list>
-
-<button (click)="addPerson()" mat-button>Add</button>

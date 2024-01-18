@@ -1,8 +1,13 @@
 import { Component } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { MatListModule } from '@angular/material/list';
-import { Store } from '@ngxs/store';
+import { Select, Store } from '@ngxs/store';
+import { Observable } from 'rxjs';
 
 import { CoreModule } from '~/core/core.module';
+import { AddOrReplacePlan, DeletePlan, PlansState, UpdatePlan } from '~/state/clients/plans.state';
+import { Plan } from '~/state/clients/plans.state.model';
+import { PlanDialogComponent, PlanDialogData } from './plan-dialog.component';
 
 @Component({
   selector: 'app-plans',
@@ -16,5 +21,52 @@ import { CoreModule } from '~/core/core.module';
   styleUrl: './plans.component.scss'
 })
 export class PlansComponent {
-  constructor(private store: Store) {}
+  @Select(PlansState.plans)
+  plans!: Observable<Record<string, Plan>>;
+
+  constructor(
+    private dialog: MatDialog,
+    private store: Store
+  ) {}
+
+  addPlan() {
+    this.dialog.open<PlanDialogComponent, PlanDialogData, PlanDialogData>(PlanDialogComponent)
+      .afterClosed()
+      .subscribe(data => {
+        if (data) {
+          const plan: Plan = {
+            inheritsFrom: data.inheritsFrom,
+            name: data.name,
+            scheme: {
+              type: 'guyton-klinger',
+              initialPercentage: 4,
+              guardRails: { lower: -20, upper: 20 },
+              adjustmentPercentage: 5,
+              frequency: 1
+            },
+            stages: []
+          };
+          this.store.dispatch(new AddOrReplacePlan(data.id, plan));
+        }
+      });
+  }
+
+  editPlan(id: string, plan: Plan) {
+    const data: PlanDialogData = {
+      id: id,
+      inheritsFrom: plan.inheritsFrom,
+      name: plan.name,
+    };
+
+    this.dialog.open<PlanDialogComponent, PlanDialogData, PlanDialogData>(PlanDialogComponent, { data })
+      .afterClosed()
+      .subscribe(value => {
+        if (value)
+          this.store.dispatch(new UpdatePlan(value.id, value.inheritsFrom, value.name));
+      });
+  }
+
+  deletePlan(id: string) {
+    this.store.dispatch(new DeletePlan(id));
+  }
 }

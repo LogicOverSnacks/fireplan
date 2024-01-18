@@ -1,18 +1,24 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDialog } from '@angular/material/dialog';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { MatListModule } from '@angular/material/list';
 import { Select, Store } from '@ngxs/store';
+import { default as moment, Moment } from 'moment';
 import { Observable } from 'rxjs';
 
 import { CoreModule } from '~/core/core.module';
 import { AddOrUpdatePerson, PeopleState } from '~/state/clients/people.state';
 import { Person } from '~/state/clients/people.state.model';
-import { PersonDialogComponent } from './person-dialog.component';
+import { PersonDialogComponent, PersonDialogData } from './person-dialog.component';
 
 @Component({
   selector: 'app-people',
   standalone: true,
   imports: [
+    MatDatepickerModule,
+    MatExpansionModule,
     MatListModule,
 
     CoreModule
@@ -30,10 +36,30 @@ export class PeopleComponent {
   ) {}
 
   addPerson() {
-    this.dialog.open<PersonDialogComponent, any, Person>(PersonDialogComponent).afterClosed().subscribe(value => {
-      if (value) {
-        this.store.dispatch(new AddOrUpdatePerson(value));
-      }
-    });
+    this.dialog.open<PersonDialogComponent, PersonDialogData, Person>(PersonDialogComponent)
+      .afterClosed()
+      .subscribe(value => {
+        if (value) {
+          this.store.dispatch(new AddOrUpdatePerson(value));
+        }
+      });
+  }
+
+  editPerson(person: Person) {
+    const data = {
+      id: person.id,
+      name: person.name,
+      dateOfBirth: moment(person.dateOfBirth),
+      lifeExpectancyMean: person.lifeExpectancy.mean,
+      lifeExpectancyVariance: person.lifeExpectancy.variance
+    };
+
+    this.dialog.open<PersonDialogComponent, PersonDialogData, Person>(PersonDialogComponent, { data })
+      .afterClosed()
+      .subscribe(value => {
+        if (value) {
+          this.store.dispatch(new AddOrUpdatePerson(value));
+        }
+      });
   }
 }

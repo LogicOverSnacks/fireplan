@@ -63,9 +63,18 @@ export type GuytonKlingerScheme = {
 
 export type Scheme = GuytonKlingerScheme;
 
-export type Plan = {
-  inheritsFrom: string | null;
+export type FullPlan = {
+  inheritsFrom: null;
   name: string;
   stages: Stage[];
   scheme: Scheme;
 }
+
+export type PartialPlan = {
+  inheritsFrom: string;
+  name: string;
+  scheme?: Scheme;
+  stages?: Stage[];
+};
+
+export type Plan = FullPlan | PartialPlan;

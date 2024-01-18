@@ -7,7 +7,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { AppCurrencyPipe } from './currency.pipe';
+import { AppCurrencyPipe } from './ui/currency.pipe';
+import { PageTitleComponent } from './ui/page-title.component';
 
 @NgModule({
   imports: [
@@ -19,7 +20,8 @@ import { AppCurrencyPipe } from './currency.pipe';
     MatInputModule,
     ReactiveFormsModule,
 
-    AppCurrencyPipe
+    AppCurrencyPipe,
+    PageTitleComponent
   ],
   providers: [
     CurrencyPipe
@@ -34,7 +36,8 @@ import { AppCurrencyPipe } from './currency.pipe';
     MatTooltipModule,
     ReactiveFormsModule,
 
-    AppCurrencyPipe
+    AppCurrencyPipe,
+    PageTitleComponent
   ]
 })
 export class CoreModule {}

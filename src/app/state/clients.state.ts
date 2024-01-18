@@ -274,6 +274,31 @@ export function PlanAction(
             const { plans, selectedPlanId } = state.clients[state.selectedClientId];
             if (selectedPlanId === null) throw new Error(`No plan selected for client ${state.selectedClientId}`);
 
+            const plan = plans[selectedPlanId];
+            let newPlan: Plan;
+
+            if (val.inheritsFrom === null) {
+              if (!plan.scheme || !plan.stages)
+                throw new Error(`Cannot remove parent from plan with id ${selectedPlanId} because there are missing parts`);
+
+              newPlan = {
+                inheritsFrom: null,
+                name: val.name ?? plan.name,
+                scheme: plan.scheme,
+                stages: plan.stages
+              };
+            } else {
+              if (plan.inheritsFrom === null) {
+                newPlan = { ...plan, ...val };
+              } else {
+                newPlan = {
+                  ...plan,
+                  ...val,
+                  inheritsFrom: val.inheritsFrom ?? plan.inheritsFrom
+                };
+              }
+            }
+
             return {
               ...state,
               clients: {
@@ -282,10 +307,7 @@ export function PlanAction(
                   ...state.clients[state.selectedClientId],
                   plans: {
                     ...plans,
-                    [selectedPlanId]: {
-                      ...plans[selectedPlanId],
-                      ...val
-                    }
+                    [selectedPlanId]: newPlan
                   }
                 }
               }
