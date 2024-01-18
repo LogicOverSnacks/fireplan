@@ -1,0 +1,47 @@
+import { Selector, StateContext } from '@ngxs/store';
+
+import { ClientAction, ClientsState } from '../clients.state';
+import { Client } from '../clients.state.model';
+import { Person } from './people.state.model';
+
+export class AddOrUpdatePerson {
+  static readonly type = '[People] AddOrUpdatePerson';
+  constructor(public person: Person) {}
+}
+
+export class DeletePerson {
+  static readonly type = '[People] DeletePerson';
+  constructor(public id: string) {}
+}
+
+export class PeopleState {
+  @Selector([ClientsState.currentClient])
+  static maxYear(client: Client) {
+    return Math.max(
+      ...client.people.map(person =>
+        Math.ceil(person.dateOfBirth.getUTCFullYear() + person.lifeExpectancy.mean + person.lifeExpectancy.variance*3)
+      )
+    );
+  }
+
+  @Selector([ClientsState.currentClient])
+  static people(client: Client) {
+    return client.people;
+  }
+
+  @ClientAction(AddOrUpdatePerson)
+  addOrUpdatePerson(ctx: StateContext<Client>, action: AddOrUpdatePerson) {
+    ctx.setState(client => ({
+      ...client,
+      people: [...client.people.filter(({ id }) => id !== action.person.id), action.person]
+    }));
+  }
+
+  @ClientAction(DeletePerson)
+  deletePerson(ctx: StateContext<Client>, action: DeletePerson) {
+    ctx.setState(client => ({
+      ...client,
+      people: client.people.filter(({ id }) => id !== action.id)
+    }));
+  }
+}

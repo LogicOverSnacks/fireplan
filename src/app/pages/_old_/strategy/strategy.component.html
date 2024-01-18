@@ -1,0 +1,68 @@
+<app-strategy-year-bar
+  class="current-year"
+  [year]="currentYear"
+  (addClicked)="addStage()"
+></app-strategy-year-bar>
+
+@if (stages | async; as stages) {
+  @for (stage of stages; track stage.name; let index = $index) {
+    <mat-expansion-panel class="stage">
+      <mat-expansion-panel-header>
+        {{stage.name}}
+        <!-- <button mat-icon-button color="warn" matTooltip="Delete" (click)="deleteStage(stage)">
+          <mat-icon>close_small</mat-icon>
+        </button> -->
+      </mat-expansion-panel-header>
+
+      <div class="fields">
+        <mat-form-field subscriptSizing="dynamic" floatLabel="always" matTooltip="Leave blank to use the same value as the previous stage">
+          <mat-label>Yearly expenses</mat-label>
+          <input type="number" matInput [placeholder]="getExpenses(stages, index) + ''" [formControl]="stage.expensesControl">
+        </mat-form-field>
+        <mat-form-field subscriptSizing="dynamic" floatLabel="always" matTooltip="Leave blank to use the same value as the previous stage">
+          <mat-label>Yearly income</mat-label>
+          <input type="number" matInput [placeholder]="getIncome(stages, index) + ''" [formControl]="stage.incomeControl">
+        </mat-form-field>
+      </div>
+    </mat-expansion-panel>
+
+    @if (stage.endYear !== null) {
+      <app-strategy-year-bar
+        [year]="stage.endYear"
+        (yearUpdated)="updateYear(stage, $event)"
+        (addClicked)="addStage()"
+      ></app-strategy-year-bar>
+    }
+  }
+}
+
+@if (archivedStages | async; as stages) {
+  @if (stages.length > 0) {
+    <h2 class="mat-headline-4">Archive</h2>
+
+    <mat-accordion>
+      @for (stage of stages; track stage.name) {
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            {{stage.name}}
+            <button mat-icon-button color="warn" matTooltip="Delete" (click)="deleteStage(stage)">
+              <mat-icon>close_small</mat-icon>
+            </button>
+          </mat-expansion-panel-header>
+
+
+        </mat-expansion-panel>
+
+        <div class="year-marker">
+          <span>{{stage.endYear}}</span>
+          <mat-divider></mat-divider>
+        </div>
+      }
+    </mat-accordion>
+  }
+}
+
+<p class="footer-notes">
+  * Expenses should not include mortgage payments.<br>
+  * All figures should be entered in today's money, they will be adjusted for inflation automatically.
+</p>

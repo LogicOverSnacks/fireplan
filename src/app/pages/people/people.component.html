@@ -1,0 +1,10 @@
+
+<mat-list>
+  @for (person of people | async; track person.id) {
+    <mat-list-item>
+      {{person.name}}
+    </mat-list-item>
+  }
+</mat-list>
+
+<button (click)="addPerson()" mat-button>Add</button>

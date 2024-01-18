@@ -5,17 +5,26 @@
         <mat-icon>menu</mat-icon>
       </button>
     } @else {
-      <mat-nav-list>
+      <!-- <mat-nav-list> -->
         @for (route of routes; track route) {
-          <a mat-list-item [routerLink]="route.path" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <a mat-button [routerLink]="route.path" routerLinkActive="active" ariaCurrentWhenActive="page">
             {{route.data?.['title']}}
           </a>
         }
-      </mat-nav-list>
+      <!-- </mat-nav-list> -->
     }
+
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>Plan</mat-label>
+      <mat-select [formControl]="planControl">
+        <mat-option [value]="null" (click)="addPlan()"><mat-icon>add</mat-icon> Add new...</mat-option>
+        <!-- @for (plan of plans | async; track plan) {
+          <mat-option [value]="plan">{{plan}}</mat-option>
+        } -->
+      </mat-select>
+    </mat-form-field>
   </mat-toolbar>
 </header>
-
 
 <mat-sidenav-container>
   <mat-sidenav mode="over" #sidenav>

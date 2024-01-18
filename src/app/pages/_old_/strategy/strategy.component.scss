@@ -1,0 +1,56 @@
+:host {
+  display: block;
+  padding: 20px;
+}
+
+.current-year {
+  cursor: default;
+}
+
+h2 {
+  button {
+    margin-left: 8px;
+
+    mat-icon {
+      margin-right: 0;
+    }
+  }
+}
+
+.stage {
+  .fields {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: fit-content;
+  }
+}
+
+.year-marker {
+  display: flex;
+  align-items: center;
+  padding: 25px 0;
+  gap: 10px;
+  cursor: n-resize;
+
+  .year {
+    width: 64px;
+  }
+
+  .divider {
+    flex: 1 0 auto;
+    margin: auto 0;
+  }
+
+  .add {
+    button {
+      mat-icon {
+        margin-right: 0;
+      }
+    }
+  }
+}
+
+.footer-notes {
+  font-style: italic;
+}

@@ -1,0 +1,28 @@
+<h2 class="mat-headline-4">
+  Clients
+  <button mat-button (click)="addClient()" matTooltip="Add new client"><mat-icon>add</mat-icon></button>
+</h2>
+
+<mat-list>
+  @for (client of clients | async | keyvalue; track client.key) {
+    <mat-list-item [class.selected]="+client.key === currentClientId()">
+      @if (editingClientId() === +client.key) {
+        <mat-form-field>
+          <mat-label>Name</mat-label>
+          <input type="text" matInput required [(ngModel)]="editingClientName">
+        </mat-form-field>
+      } @else {
+        {{client.value.name}}
+      }
+
+      <div class="buttons">
+        @if (editingClientId() === +client.key) {
+          <button mat-button (click)="updateClientName(+client.key, editingClientName)"><mat-icon>save</mat-icon></button>
+        } @else {
+          <button mat-button (click)="editClient(+client.key, client.value.name)"><mat-icon>edit</mat-icon></button>
+        }
+        <button mat-button (click)="selectClient(+client.key)"><mat-icon>app_registration</mat-icon></button>
+      </div>
+    </mat-list-item>
+  }
+</mat-list>

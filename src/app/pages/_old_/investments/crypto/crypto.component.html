@@ -1,0 +1,19 @@
+<h2 class="mat-headline-4">
+  Cryptocurrency
+  <button mat-button (click)="addCrypto()" matTooltip="Add new..."><mat-icon>add</mat-icon></button>
+</h2>
+
+<mat-list>
+  @for (crypto of cryptoCurrencies | async; track crypto.address) {
+    <mat-list-item>
+      <mat-icon matListItemIcon [svgIcon]="crypto.type | cryptoIcon" [matTooltip]="crypto.type | cryptoType">folder</mat-icon>
+      <div matListItemLine>{{crypto.name}}
+        <button mat-icon-button color="warn" matTooltip="Delete" (click)="deleteCrypto(crypto.name)">
+          <mat-icon>close_small</mat-icon>
+        </button>
+      </div>
+      <div matListItemLine>{{crypto.balanceGbp | currency:'GBP'}} ({{crypto.balance | number}} {{crypto.type | cryptoUnit}})</div>
+      <div matListItemLine [matTooltip]="crypto.address">{{crypto.address}}</div>
+    </mat-list-item>
+  }
+</mat-list>

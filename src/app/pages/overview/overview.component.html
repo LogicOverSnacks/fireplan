@@ -1,1 +1,87 @@
-<p>overview works!</p>
+<!-- <h2>Net worth: {{netWorth | async | currency:'GBP'}}</h2> -->
+<div class="net-worth">
+  <!-- @if (cryptoPercentage | async; as percent) {
+    <div class="crypto"
+      [style.width]="percent + '%'"
+      [matTooltip]="'Cryptocurrency: ' + percent + '% (' + (cryptoAmount | async | currency:'GBP') + ')'"
+    ></div>
+  } -->
+</div>
+
+<!--
+
+<p>
+  You're on course to retire at age <span class="highlight">55</span>
+</p> -->
+
+<!--
+
+  Tab for each plan
+  Overall settings
+
+  Settings lets you setup:
+    * graphs of historical stock price, gold price, bonds, etc. - user can add their own graphs too
+    * people - the ages and life expectancy of the people, usually will be 1 person or a couple
+    * current assets & investments
+
+  Each plan tab displays:
+    * life stages with income & expenses for each person (option to combine expenses?)
+    *
+
+
+  Monetize by:
+    * allowing multiple settings to be setup : very useful for professional financial planners
+    * allow backing up settings to disk/cloud (needs encryption!)
+    * "clients" page where you can choose which client to view
+
+ -->
+
+<!--
+  Graph with:
+    * Net worth
+    * Investment nest egg
+    * Expenditures: columns showing money spent (user can change the smoothing level e.g. day, month, year)
+
+
+    life expectancy should be configurable with mean & variance
+
+    example of stages: now, kids start school, kids leave home, retirement, state pension available
+
+    models for: inflation, bonds, stocks
+
+    allow option of varying allocation to cash/bonds/stocks, during market downturn only draw money from the cash pile to prevent selling stocks. Have a variable for cash buffer e.g. 5 years of expenses
+
+    put a watermark with the url on the graph
+-->
+
+<div class="graph">
+  <svg viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">
+    <line class="x-axis" x1="0" y1="100" x2="300" y2="100" stroke="black" stroke-width="1"></line>
+    <line class="y-axis" x1="0" y1="0" x2="0" y2="100" stroke="black" stroke-width="1"></line>
+  </svg>
+
+  <!-- @if (stages | async; as stages) {
+    @if (stages.length > 1) {
+      <div class="stages">
+        @for (stage of stages; track stage.name; let last = $last) {
+          <div class="stage">{{stage.name}}</div>
+          @if (!last) {
+            <mat-divider [vertical]="true"></mat-divider>
+          }
+        }
+      </div>
+    }
+  } -->
+
+  <!-- <div class="person-ages">
+    @for (person of people | async; track person.name) {
+      <div class="person">
+        <div class="ages">
+
+        </div>
+        <span class="name">{{person.name}}'s Age</span>
+      </div>
+    }
+  </div> -->
+</div>
+
