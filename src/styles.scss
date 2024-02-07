@@ -4,6 +4,6 @@
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 
-// @include mat.all-component-typographies(theme.$app-typography);
+@include mat.all-component-typographies(theme.$app-typography);
 @include mat.core();
 @include mat.all-component-themes(theme.$app-theme);

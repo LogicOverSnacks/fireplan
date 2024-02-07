@@ -1,7 +1,4 @@
-<h2 class="mat-headline-4">
-  Clients
-  <button mat-button (click)="addClient()" matTooltip="Add new client"><mat-icon>add</mat-icon></button>
-</h2>
+<app-page-title (add)="addClient()">Clients</app-page-title>
 
 <mat-list>
   @for (client of clients | async | keyvalue; track client.key) {
@@ -15,7 +12,7 @@
         {{client.value.name}}
       }
 
-      <div class="buttons">
+      <div class="buttons" matListItemMeta>
         @if (editingClientId() === +client.key) {
           <button mat-button (click)="updateClientName(+client.key, editingClientName)"><mat-icon>save</mat-icon></button>
         } @else {

@@ -26,7 +26,7 @@ export type PricesStateModel = {
     btc: number;
     eth: number;
   };
-}
+};
 
 @State<PricesStateModel>({
   name: 'prices',

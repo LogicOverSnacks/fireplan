@@ -31,7 +31,6 @@ export class ChangeSelectedClient {
 const createClient = (id: number) => ({
   archived: false,
   name: `Client ${id}`,
-  lastFetch: null,
   currency: 'GBP',
   people: [],
   plans: {},
@@ -156,34 +155,36 @@ export function ClientAction(
     const original = descriptor.value;
     const methodName = getActionMethodName(actionType);
 
-    (ClientsState.prototype as any)[methodName] = function(state: StateContext<ClientsStateModel>, action: ActionType) {
+    (ClientsState.prototype as any)[methodName] = function(ctx: StateContext<ClientsStateModel>, action: ActionType) {
       const clientStateCtx: StateContext<Client> = {
         getState: () => {
-          const { clients, selectedClientId } = state.getState();
+          const { clients, selectedClientId } = ctx.getState();
           if (selectedClientId === null) throw new Error(`No client selected`);
 
           return clients[selectedClientId];
         },
 
         setState: (val: Client | StateOperator<Client>) => {
-          const { clients, selectedClientId } = state.setState(state => {
+          const { clients: { clients, selectedClientId } } = ctx.setState(state => {
             if (state.selectedClientId === null) throw new Error(`No client selected`);
 
             return {
               ...state,
               clients: {
                 ...state.clients,
-                [state.selectedClientId]: typeof val === 'function' ? val(state.clients[state.selectedClientId]) : val
+                [state.selectedClientId]: typeof val === 'function'
+                  ? val(state.clients[state.selectedClientId])
+                  : val
               }
             };
-          });
+          }) as unknown as { clients: ClientsStateModel; };
           if (selectedClientId === null) throw new Error(`No client selected`);
 
           return clients[selectedClientId];
         },
 
         patchState: (val: Partial<Client>) => {
-          const { clients, selectedClientId } = state.setState(state => {
+          const { clients: { clients, selectedClientId } } = ctx.setState(state => {
             if (state.selectedClientId === null) throw new Error(`No client selected`);
 
             return {
@@ -196,13 +197,13 @@ export function ClientAction(
                 }
               }
             };
-          });
+          }) as unknown as { clients: ClientsStateModel; };
           if (selectedClientId === null) throw new Error(`No client selected`);
 
           return clients[selectedClientId];
         },
 
-        dispatch: (actions: any | any[]) => state.dispatch(actions)
+        dispatch: (actions: any | any[]) => ctx.dispatch(actions)
       };
 
       return original.apply(this, [clientStateCtx, action]);
@@ -226,10 +227,10 @@ export function PlanAction(
     const original = descriptor.value;
     const methodName = getActionMethodName(actionType);
 
-    (ClientsState.prototype as any)[methodName] = function(state: StateContext<ClientsStateModel>, action: ActionType) {
-      const clientStateCtx: StateContext<Plan> = {
+    (ClientsState.prototype as any)[methodName] = function(rootCtx: StateContext<ClientsStateModel>, action: ActionType) {
+      const planStateCtx: StateContext<Plan> = {
         getState: () => {
-          const { clients, selectedClientId } = state.getState();
+          const { clients, selectedClientId } = rootCtx.getState();
           if (selectedClientId === null) throw new Error(`No client selected`);
 
           const { plans, selectedPlanId } = clients[selectedClientId];
@@ -239,7 +240,7 @@ export function PlanAction(
         },
 
         setState: (val: Plan | StateOperator<Plan>) => {
-          const { clients, selectedClientId } = state.setState(state => {
+          const { clients: { clients, selectedClientId } } = rootCtx.setState(state => {
             if (state.selectedClientId === null) throw new Error(`No client selected`);
 
             const { plans, selectedPlanId } = state.clients[state.selectedClientId];
@@ -258,7 +259,7 @@ export function PlanAction(
                 }
               }
             };
-          });
+          }) as unknown as { clients: ClientsStateModel; };
           if (selectedClientId === null) throw new Error(`No client selected`);
 
           const { plans, selectedPlanId } = clients[selectedClientId];
@@ -268,7 +269,7 @@ export function PlanAction(
         },
 
         patchState: (val: Partial<Plan>) => {
-          const { clients, selectedClientId } = state.setState(state => {
+          const { clients: { clients, selectedClientId } } = rootCtx.setState(state => {
             if (state.selectedClientId === null) throw new Error(`No client selected`);
 
             const { plans, selectedPlanId } = state.clients[state.selectedClientId];
@@ -278,13 +279,12 @@ export function PlanAction(
             let newPlan: Plan;
 
             if (val.inheritsFrom === null) {
-              if (!plan.scheme || !plan.stages)
+              if (!plan.stages)
                 throw new Error(`Cannot remove parent from plan with id ${selectedPlanId} because there are missing parts`);
 
               newPlan = {
                 inheritsFrom: null,
                 name: val.name ?? plan.name,
-                scheme: plan.scheme,
                 stages: plan.stages
               };
             } else {
@@ -312,7 +312,7 @@ export function PlanAction(
                 }
               }
             };
-          });
+          }) as unknown as { clients: ClientsStateModel; };
           if (selectedClientId === null) throw new Error(`No client selected`);
 
           const { plans, selectedPlanId } = clients[selectedClientId];
@@ -321,10 +321,10 @@ export function PlanAction(
           return plans[selectedPlanId];
         },
 
-        dispatch: (actions: any | any[]) => state.dispatch(actions)
+        dispatch: (actions: any | any[]) => rootCtx.dispatch(actions)
       };
 
-      return original.apply(this, [clientStateCtx, action]);
+      return original.apply(this, [planStateCtx, action]);
     };
 
     Action(actionType, options)({ constructor: ClientsState }, methodName, {});

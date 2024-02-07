@@ -34,18 +34,16 @@ export class PlansComponent {
       .afterClosed()
       .subscribe(data => {
         if (data) {
-          const plan: Plan = {
-            inheritsFrom: data.inheritsFrom,
-            name: data.name,
-            scheme: {
-              type: 'guyton-klinger',
-              initialPercentage: 4,
-              guardRails: { lower: -20, upper: 20 },
-              adjustmentPercentage: 5,
-              frequency: 1
-            },
-            stages: []
-          };
+          const plan: Plan = data.inheritsFrom === null
+            ? {
+              inheritsFrom: null,
+              name: data.name,
+              stages: []
+            }
+            : {
+              inheritsFrom: data.inheritsFrom,
+              name: data.name
+            };
           this.store.dispatch(new AddOrReplacePlan(data.id, plan));
         }
       });

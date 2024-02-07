@@ -22,7 +22,12 @@ h2 {
     display: flex;
     flex-direction: column;
     gap: 20px;
-    width: fit-content;
+    width: 100%;
+  }
+
+  .income {
+    display: flex;
+    gap: 20px;
   }
 }
 

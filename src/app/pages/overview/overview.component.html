@@ -58,6 +58,10 @@
   <svg viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">
     <line class="x-axis" x1="0" y1="100" x2="300" y2="100" stroke="black" stroke-width="1"></line>
     <line class="y-axis" x1="0" y1="0" x2="0" y2="100" stroke="black" stroke-width="1"></line>
+
+    @for (path of paths(); track path) {
+      <path [attr.d]="path"></path>
+    }
   </svg>
 
   <!-- @if (stages | async; as stages) {

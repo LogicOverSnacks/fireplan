@@ -2,7 +2,7 @@ import { Selector, StateContext } from '@ngxs/store';
 
 import { ClientAction, ClientsState } from '../clients.state';
 import { Client } from '../clients.state.model';
-import { FullPlan, Plan } from './plans.state.model';
+import { FullPlan, Plan, UnrolledPlan } from './plans.state.model';
 
 export class AddOrReplacePlan {
   static readonly type = '[Plans] AddOrReplacePlan';
@@ -41,10 +41,7 @@ export class PlansState {
     return PlansState.unrollPlan(client.plans, client.plans[client.selectedPlanId]);
   }
 
-  static unrollPlan(
-    plans: Record<string, Plan>,
-    plan: Plan
-  ): Omit<FullPlan, 'inheritsFrom'> & { inheritsFrom: string | null; } {
+  static unrollPlan(plans: Record<string, Plan>, plan: Plan): UnrolledPlan {
     if (plan.inheritsFrom === null) return plan;
 
     return {
@@ -74,13 +71,12 @@ export class PlansState {
       let newPlan: Plan;
 
       if (action.inheritsFrom === null) {
-        if (!plan.scheme || !plan.stages)
+        if (!plan.stages)
           throw new Error(`Cannot remove parent from plan with id ${action.id} because there are missing parts`);
 
         newPlan = {
           inheritsFrom: null,
           name: action.name,
-          scheme: plan.scheme,
           stages: plan.stages
         };
       } else {

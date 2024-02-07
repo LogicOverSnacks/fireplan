@@ -1,8 +1,10 @@
-import { Selector, StateContext } from '@ngxs/store';
+import { Selector, StateContext, createSelector } from '@ngxs/store';
 
 import { ClientAction, ClientsState } from '../clients.state';
 import { Client } from '../clients.state.model';
 import { Person } from './people.state.model';
+import { mapRecord } from '~/core';
+import { Plan } from './plans.state.model';
 
 export class AddOrUpdatePerson {
   static readonly type = '[People] AddOrUpdatePerson';
@@ -15,11 +17,13 @@ export class DeletePerson {
 }
 
 export class PeopleState {
-  @Selector([ClientsState.currentClient])
-  static maxYear(client: Client) {
-    return Math.max(
-      ...client.people.map(person =>
-        Math.ceil(person.dateOfBirth.getUTCFullYear() + person.lifeExpectancy.mean + person.lifeExpectancy.variance*3)
+  static maxYear(standardDeviations: number) {
+    return createSelector(
+      [ClientsState.currentClient],
+      (client: Client) => Math.max(
+        ...client.people.map(person =>
+          Math.ceil(person.dateOfBirth.year() + person.lifeExpectancy.mean + person.lifeExpectancy.variance*standardDeviations)
+        )
       )
     );
   }
@@ -41,7 +45,18 @@ export class PeopleState {
   deletePerson(ctx: StateContext<Client>, action: DeletePerson) {
     ctx.setState(client => ({
       ...client,
-      people: client.people.filter(({ id }) => id !== action.id)
+      people: client.people.filter(({ id }) => id !== action.id),
+      plans: mapRecord(client.plans, ([id, plan]) => [id, {
+        ...plan,
+        stages: plan.stages?.map(stage => {
+          const updatedStage = { ...stage };
+
+          if (updatedStage.incomeByPerson && updatedStage.incomeByPerson[action.id] !== undefined)
+            delete updatedStage.incomeByPerson[action.id];
+
+          return updatedStage;
+        })
+      } as Plan])
     }));
   }
 }

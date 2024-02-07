@@ -47,7 +47,7 @@ export type PersonDialogData = {
         <div class="row">
           <mat-form-field subscriptSizing="dynamic">
             <mat-label>Name</mat-label>
-            <input type="text" required matInput formControlName="name">
+            <input type="text" required matInput formControlName="name" spellcheck="false">
           </mat-form-field>
           <mat-form-field subscriptSizing="dynamic">
             <mat-label>Date of Birth</mat-label>
@@ -100,7 +100,7 @@ export class PersonDialogComponent {
   close = () => this.dialogRef.close({
     id: this.data?.id ?? crypto.randomUUID(),
     name: this.form.controls.name.value!,
-    dateOfBirth: this.form.controls.dateOfBirth.value!.toDate(),
+    dateOfBirth: this.form.controls.dateOfBirth.value!,
     lifeExpectancy: {
       mean: this.form.controls.lifeExpectancyMean.value,
       variance: this.form.controls.lifeExpectancyVariance.value

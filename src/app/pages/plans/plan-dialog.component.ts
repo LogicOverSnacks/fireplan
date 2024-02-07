@@ -55,7 +55,7 @@ export type PlanDialogData = {
         </mat-form-field>
         <mat-form-field subscriptSizing="dynamic">
           <mat-label>Name</mat-label>
-          <input type="text" required matInput formControlName="name">
+          <input type="text" required matInput formControlName="name" cdkFocusInitial>
         </mat-form-field>
       </mat-dialog-content>
       <mat-dialog-actions>

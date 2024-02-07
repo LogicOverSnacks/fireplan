@@ -6,17 +6,19 @@ import { CommonModule } from '@angular/common';
 import { FormControl } from '@angular/forms';
 import { MatIconRegistry } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import { RouterModule, RouterOutlet } from '@angular/router';
+import { DomSanitizer } from '@angular/platform-browser';
+import { ActivatedRoute, Router, RouterModule, RouterOutlet } from '@angular/router';
 import { Store } from '@ngxs/store';
 import { map } from 'rxjs';
 
 import { routes } from './app.routes';
 import { CoreModule } from './core/core.module';
 import { ChangeSelectedPlan, PlansState } from './state/clients/plans.state';
-import { DomSanitizer } from '@angular/platform-browser';
+import { ChangeSelectedClient, ClientsState } from './state/clients.state';
 
 @Component({
   selector: 'app-root',
@@ -24,6 +26,7 @@ import { DomSanitizer } from '@angular/platform-browser';
   imports: [
     CommonModule,
     MatListModule,
+    MatMenuModule,
     MatSelectModule,
     MatSidenavModule,
     MatToolbarModule,
@@ -37,16 +40,18 @@ import { DomSanitizer } from '@angular/platform-browser';
 })
 export class AppComponent {
   title = 'fireplan';
-  routes = routes;
+  routes = routes.filter(route => !route.data?.['hide']);
 
   ltMd = this.breakpointObserver.observe([Breakpoints.XSmall, Breakpoints.Small]).pipe(map(({ matches }) => matches));
 
   planControl = new FormControl<string | null>(this.store.selectSnapshot(PlansState.selectedPlanId));
-  // plans = this.store.select(PlansState.plans).pipe(map(plans => Object.keys(plans)));
+  plans = this.store.select(PlansState.plans).pipe(map(plans => Object.keys(plans)));
 
   constructor(
+    activatedRoute: ActivatedRoute,
     domSanitizer: DomSanitizer,
     http: HttpClient,
+    router: Router,
     matIconRegistry: MatIconRegistry,
     private breakpointObserver: BreakpointObserver,
     private store: Store
@@ -61,6 +66,16 @@ export class AppComponent {
 
     this.planControl.valueChanges.pipe(takeUntilDestroyed()).subscribe(id => {
       this.store.dispatch(new ChangeSelectedPlan(id));
+    });
+
+    this.store.select(ClientsState.currentClientId).pipe(takeUntilDestroyed()).subscribe(id => {
+      router.navigate([], { queryParams: { client: id }, queryParamsHandling: 'merge' });
+    });
+
+    activatedRoute.queryParamMap.pipe(takeUntilDestroyed()).subscribe(queryParams => {
+      const id = queryParams.get('client');
+      if (id !== null)
+        this.store.dispatch(new ChangeSelectedClient(+id));
     });
   }
 

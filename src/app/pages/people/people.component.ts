@@ -1,15 +1,14 @@
-import { Component, signal } from '@angular/core';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { Component } from '@angular/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDialog } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatListModule } from '@angular/material/list';
 import { Select, Store } from '@ngxs/store';
-import { default as moment, Moment } from 'moment';
+import moment from 'moment';
 import { Observable } from 'rxjs';
 
 import { CoreModule } from '~/core/core.module';
-import { AddOrUpdatePerson, PeopleState } from '~/state/clients/people.state';
+import { AddOrUpdatePerson, DeletePerson, PeopleState } from '~/state/clients/people.state';
 import { Person } from '~/state/clients/people.state.model';
 import { PersonDialogComponent, PersonDialogData } from './person-dialog.component';
 
@@ -61,5 +60,9 @@ export class PeopleComponent {
           this.store.dispatch(new AddOrUpdatePerson(value));
         }
       });
+  }
+
+  deletePerson(person: Person) {
+    this.store.dispatch(new DeletePerson(person.id));
   }
 }

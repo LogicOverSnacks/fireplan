@@ -1,0 +1,17 @@
+<mat-form-field subscriptSizing="dynamic">
+  <mat-label>Amount</mat-label>
+  <input type="number" class="amount-input" matInput [formControl]="form.controls.amount">
+  <button mat-button
+    matSuffix
+    class="toggle-btn"
+    [matTooltip]="'Click to switch to ' + (form.controls.type.value === 'cost' ? 'percentage' : 'fixed amount')"
+    (click)="toggleType()"
+  >{{form.controls.type.value === 'cost' ? '£' : '%'}}</button>
+
+  @if (form.controls.amount.hasError('required') || form.controls.type.hasError('required')) {
+    <mat-error>An amount must be specified</mat-error>
+  }
+  @if (form.controls.amount.hasError('value')) {
+    <mat-error>{{form.controls.amount.getError('value')}}</mat-error>
+  }
+</mat-form-field>

@@ -1,33 +1,44 @@
 <header>
   <mat-toolbar>
     @if (ltMd | async) {
-      <button mat-icon-button (click)="sidenav.toggle()">
+      <button mat-icon-button (click)="routeMenu.toggle()">
         <mat-icon>menu</mat-icon>
       </button>
     } @else {
       <!-- <mat-nav-list> -->
-        @for (route of routes; track route) {
-          <a mat-button [routerLink]="route.path" routerLinkActive="active" ariaCurrentWhenActive="page">
-            {{route.data?.['title']}}
-          </a>
-        }
+      @for (route of routes; track route) {
+        <a mat-button [routerLink]="route.path" routerLinkActive="active" ariaCurrentWhenActive="page">
+          {{route.data?.['title']}}
+        </a>
+      }
       <!-- </mat-nav-list> -->
     }
+
+    <span class="spacer"></span>
 
     <mat-form-field subscriptSizing="dynamic">
       <mat-label>Plan</mat-label>
       <mat-select [formControl]="planControl">
         <mat-option [value]="null" (click)="addPlan()"><mat-icon>add</mat-icon> Add new...</mat-option>
-        <!-- @for (plan of plans | async; track plan) {
+        @for (plan of plans | async; track plan) {
           <mat-option [value]="plan">{{plan}}</mat-option>
-        } -->
+        }
       </mat-select>
     </mat-form-field>
+
+    <button mat-icon-button [matMenuTriggerFor]="accountMenu">
+      <mat-icon>person</mat-icon>
+    </button>
+    <mat-menu #accountMenu="matMenu">
+      <a routerLink="/clients" mat-menu-item>Clients</a>
+      <a routerLink="/graphs" mat-menu-item>Graphs</a>
+      <a routerLink="/prices" mat-menu-item>Prices</a>
+    </mat-menu>
   </mat-toolbar>
 </header>
 
 <mat-sidenav-container>
-  <mat-sidenav mode="over" #sidenav>
+  <mat-sidenav mode="over" #routeMenu>
     <mat-nav-list>
       @for (route of routes; track route) {
         <a mat-list-item [routerLink]="route.path" routerLinkActive="active" ariaCurrentWhenActive="page">

@@ -1,0 +1,49 @@
+@use '@angular/material' as mat;
+@use 'theme' as theme;
+
+:host {
+  display: block;
+}
+
+.target-ctrl, .threshold-ctrl, .adjustment-ctrl {
+  width: 40px;
+  -moz-appearance:textfield;
+
+  &::-webkit-outer-spin-button, &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0
+  }
+}
+
+form {
+  display: flex;
+  align-items: baseline;
+  $gap: 20px;
+  gap: $gap;
+
+  mat-form-field {
+    flex: 0 0 calc((100% - $gap * 2) / 3);
+  }
+
+  mat-slider {
+    width: calc(100% - 32px);
+    margin: 0;
+  }
+}
+
+svg {
+  width: 400px;
+
+  .threshold {
+    fill: mat.get-color-from-palette(theme.$app-accent-palette, 300);
+    opacity: 0.5;
+  }
+
+  .rate {
+    stroke: mat.get-color-from-palette(theme.$app-warn-palette, 300);
+  }
+
+  .target {
+    stroke: mat.get-color-from-palette(theme.$app-primary-palette, 300);
+  }
+}

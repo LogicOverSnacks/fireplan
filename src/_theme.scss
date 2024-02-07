@@ -11,3 +11,5 @@ $app-theme: mat.define-dark-theme((
     warn: $app-warn-palette
   )
 ));
+
+$app-typography: mat.define-rem-typography-config();

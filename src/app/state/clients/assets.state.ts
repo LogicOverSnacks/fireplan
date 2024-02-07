@@ -2,7 +2,7 @@ import { Selector, StateContext } from '@ngxs/store';
 import moment from 'moment';
 import { defaultIfEmpty, forkJoin, map, tap } from 'rxjs';
 
-import { CryptoApiService } from '~/core';
+import { CryptoApiService, mapRecord } from '~/core';
 import { ClientAction, ClientsState } from '../clients.state';
 import { Client } from '../clients.state.model';
 import { PricesState, PricesStateModel } from '../prices.state';
@@ -28,6 +28,27 @@ export class AssetsState {
     return client.assets
       .map(asset => AssetsState.getAssetPrice(asset, pricesState))
       .reduce((total, value) => total + value, 0);
+  }
+
+  @Selector([ClientsState.currentClient, PricesState])
+  static portfolioTotals(client: Client, pricesState: PricesStateModel) {
+    const assetsByType: Record<Asset['type'], Asset[]> = {
+      cash: [],
+      bonds: [],
+      stocks: [],
+      crypto: []
+    };
+
+    for (const asset of client.assets)
+      assetsByType[asset.type].push(asset);
+
+    return mapRecord(
+      assetsByType,
+      ([type, assets]) => [
+        type,
+        assets.map(asset => this.getAssetPrice(asset, pricesState)).reduce((total, value) => total + value, 0)
+      ]
+    );
   }
 
   static getAssetPrice(asset: Asset, pricesState: PricesStateModel) {

@@ -1,11 +1,13 @@
-<app-strategy-year-bar
+<h2 class="mat-headline-4">Stages</h2>
+
+<app-stages-year-bar
   class="current-year"
   [year]="currentYear"
   (addClicked)="addStage()"
-></app-strategy-year-bar>
+></app-stages-year-bar>
 
 @if (stages | async; as stages) {
-  @for (stage of stages; track stage.name; let index = $index) {
+  @for (stage of stages; track stage.id; let index = $index) {
     <mat-expansion-panel class="stage">
       <mat-expansion-panel-header>
         {{stage.name}}
@@ -15,23 +17,37 @@
       </mat-expansion-panel-header>
 
       <div class="fields">
-        <mat-form-field subscriptSizing="dynamic" floatLabel="always" matTooltip="Leave blank to use the same value as the previous stage">
+        <!-- <mat-form-field subscriptSizing="dynamic" floatLabel="always" matTooltip="Leave blank to use the same value as the previous stage">
           <mat-label>Yearly expenses</mat-label>
           <input type="number" matInput [placeholder]="getExpenses(stages, index) + ''" [formControl]="stage.expensesControl">
-        </mat-form-field>
-        <mat-form-field subscriptSizing="dynamic" floatLabel="always" matTooltip="Leave blank to use the same value as the previous stage">
-          <mat-label>Yearly income</mat-label>
-          <input type="number" matInput [placeholder]="getIncome(stages, index) + ''" [formControl]="stage.incomeControl">
-        </mat-form-field>
+        </mat-form-field> -->
+
+        <h6 class="mat-headline-6">Income (yearly)</h6>
+        <div class="income">
+          @for (person of stage.income | keyvalue; track person.key) {
+            <mat-form-field subscriptSizing="dynamic"
+              floatLabel="always"
+              matTooltip="Leave blank to use the same value as the previous stage"
+            >
+              <mat-label>{{person.value[0]}}</mat-label>
+              <input type="number" matInput [placeholder]="getIncome(stages, index, person.key) + ''" [formControl]="person.value[1]">
+            </mat-form-field>
+          }
+        </div>
+
+        @if (stage.scheme) {
+          <app-stages-scheme [stageId]="stage.id" [scheme]="stage.scheme"></app-stages-scheme>
+        }
       </div>
     </mat-expansion-panel>
 
-    @if (stage.endYear !== null) {
-      <app-strategy-year-bar
+    @if (stage.endYear !== undefined) {
+      <app-stages-year-bar
         [year]="stage.endYear"
-        (yearUpdated)="updateYear(stage, $event)"
-        (addClicked)="addStage()"
-      ></app-strategy-year-bar>
+        [disableAdd]="!canAddStage(stage, stages[index + 1])"
+        (yearUpdated)="updateYear(stage.id, $event)"
+        (addClicked)="addStage(stage, stages[index + 1])"
+      ></app-stages-year-bar>
     }
   }
 }

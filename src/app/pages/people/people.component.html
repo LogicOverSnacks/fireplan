@@ -4,9 +4,14 @@
   @for (person of people | async; track person.id) {
     <mat-list-item>
       <span class="name">{{person.name}}</span>
-      <button mat-icon-button matListItemMeta (click)="editPerson(person)" matTooltip="Edit">
-        <mat-icon>edit</mat-icon>
-      </button>
+      <div matListItemMeta>
+        <button mat-icon-button (click)="editPerson(person)" matTooltip="Edit">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button mat-icon-button (click)="deletePerson(person)" matTooltip="Delete">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
     </mat-list-item>
   }
 </mat-list>

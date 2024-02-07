@@ -8,7 +8,7 @@ import { fromEvent, takeUntil, throttleTime } from 'rxjs';
 import { CoreModule } from '~/core/core.module';
 
 @Component({
-  selector: 'app-strategy-year-bar',
+  selector: 'app-stages-year-bar',
   standalone: true,
   imports: [
     MatExpansionModule,
@@ -48,13 +48,21 @@ import { CoreModule } from '~/core/core.module';
       <mat-divider></mat-divider>
     </span>
     <span class="add">
-      <button mat-button (click)="addClicked.emit()" matTooltip="Add new..."><mat-icon>add</mat-icon></button>
+      <button type="button"
+        mat-button
+        [disabled]="disableAdd"
+        (click)="addClicked.emit()"
+        matTooltip="Add new..."
+      ><mat-icon>add</mat-icon></button>
     </span>
   `,
 })
-export class StrategyYearBarComponent {
+export class StagesYearBarComponent {
   @Input()
   year!: number;
+
+  @Input()
+  disableAdd = false;
 
   @Output()
   yearUpdated = new EventEmitter<number>();
