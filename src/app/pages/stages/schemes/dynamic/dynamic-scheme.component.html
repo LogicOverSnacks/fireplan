@@ -1,15 +1,37 @@
-<svg viewBox="0 0 200 100">
+<div class="graphic">
+  @if (isPercentView()) {
+    @if (percentagePaths(); as paths) {
+      <svg viewBox="0 0 200 100">
+        <path class="threshold" [attr.d]="paths.threshold"></path>
 
-  @if (thresholdRect(); as rect) {
-    <rect class="threshold" x="0" [attr.y]="rect.y" width="200" [attr.height]="rect.height"></rect>
+        <path class="raw-rate" [attr.d]="paths.rate" stroke="gray" fill="none"></path>
+        <path class="rate" [attr.d]="paths.correctedRate" stroke="red" fill="none"></path>
+
+        <path class="target" d="M 0 50 H 200" stroke="black" stroke-width=".25" stroke-dasharray="2"></path>
+      </svg>
+    }
+  } @else {
+    @if (costPaths(); as paths) {
+      <svg viewBox="0 0 200 100">
+        <path class="threshold" [attr.d]="paths.threshold"></path>
+
+        <path class="raw-rate" [attr.d]="paths.rate" stroke="gray" fill="none"></path>
+        <path class="rate" [attr.d]="paths.correctedRate" stroke="red" fill="none"></path>
+
+        <path class="target" [attr.d]="paths.target" stroke="black" stroke-width=".25" stroke-dasharray="2" fill="none"></path>
+      </svg>
+    }
   }
 
-  <path class="raw-rate" [attr.d]="rawRatePath()" stroke="gray" fill="none"></path>
-  <path class="rate" [attr.d]="ratePath()" stroke="red" fill="none"></path>
-
-  <path class="target" [attr.d]="targetPath()" stroke="black" stroke-width=".25" stroke-dasharray="2"></path>
-
-</svg>
+  <button type="button"
+    mat-button
+    class="view-btn"
+    (click)="isPercentView.set(!isPercentView())"
+    [matTooltip]="isPercentView() ? 'Switch to cost view' : 'Switch to percentage view'"
+  >
+    {{isPercentView() ? '%' : '£'}}
+  </button>
+</div>
 
 <form [formGroup]="form">
   <mat-form-field subscriptSizing="dynamic" floatLabel="always">
@@ -19,15 +41,18 @@
       <input matSliderThumb [value]="targetSliderValue()">
     </mat-slider>
     <div matTextSuffix>
-      <input type="number" step="0.1" min="0" max="100" matInput class="target-ctrl" formControlName="target">
+      <input type="number" step="0.1" min="0.001" max="100" matInput class="target-ctrl" formControlName="target">
       <span>%</span>
     </div>
 
     <mat-hint>
       The target withdrawal rate per year as a proportion of the total fund.
     </mat-hint>
+    @if (form.controls.target.hasError('required')) {
+      <mat-error>A value must be provided</mat-error>
+    }
     @if (form.controls.target.hasError('max') || form.controls.target.hasError('min')) {
-      <mat-error>Value must be between 0 and 100</mat-error>
+      <mat-error>Value must be between 0.001 and 100</mat-error>
     }
   </mat-form-field>
 

@@ -19,7 +19,7 @@ import { MatIconModule } from '@angular/material/icon';
     h2 {
       display: flex;
       align-items: center;
-      margin-top: 0;
+      margin: 0 0 20px 0 !important;
 
       button {
         margin-left: 10px;

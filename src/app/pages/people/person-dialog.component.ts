@@ -76,8 +76,8 @@ export type PersonDialogData = {
         </mat-expansion-panel>
       </mat-dialog-content>
       <mat-dialog-actions>
-        <button mat-button [mat-dialog-close]="undefined">Cancel</button>
-        <button mat-flat-button type="submit"
+        <button type="button" mat-button [mat-dialog-close]="undefined">Cancel</button>
+        <button type="submit" mat-flat-button
           color="primary"
           (click)="close()"
           [disabled]="form.invalid"

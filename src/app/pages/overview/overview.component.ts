@@ -137,4 +137,12 @@ export class OverviewComponent {
 
   getXCoord = (value: number) => this.xOffset + value * this.xUnit;
   getYCoord = (value: number) => this.yOffset + value * this.yUnit;
+
+
+
+  private calculateCycle(initialPortfolio: Portfolio) {
+    let portfolio = initialPortfolio;
+
+
+  }
 }

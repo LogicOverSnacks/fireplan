@@ -5,13 +5,33 @@
   display: block;
 }
 
-.target-ctrl, .threshold-ctrl, .adjustment-ctrl {
-  width: 40px;
-  -moz-appearance:textfield;
+.graphic {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 200px;
+  margin: 10px 0;
 
-  &::-webkit-outer-spin-button, &::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0
+  .view-btn {
+  }
+
+  svg {
+    width: 400px;
+    // width: 100%;
+    // transform: scaleY(25%);
+
+    .threshold {
+      fill: mat.get-color-from-palette(theme.$app-accent-palette, 300);
+      opacity: 0.5;
+    }
+
+    .rate {
+      stroke: mat.get-color-from-palette(theme.$app-warn-palette, 300);
+    }
+
+    .target {
+      stroke: mat.get-color-from-palette(theme.$app-primary-palette, 300);
+    }
   }
 }
 
@@ -31,19 +51,12 @@ form {
   }
 }
 
-svg {
-  width: 400px;
+.target-ctrl, .threshold-ctrl, .adjustment-ctrl {
+  width: 40px;
+  -moz-appearance:textfield;
 
-  .threshold {
-    fill: mat.get-color-from-palette(theme.$app-accent-palette, 300);
-    opacity: 0.5;
-  }
-
-  .rate {
-    stroke: mat.get-color-from-palette(theme.$app-warn-palette, 300);
-  }
-
-  .target {
-    stroke: mat.get-color-from-palette(theme.$app-primary-palette, 300);
+  &::-webkit-outer-spin-button, &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0
   }
 }

@@ -42,10 +42,11 @@ export class AppComponent {
   title = 'fireplan';
   routes = routes.filter(route => !route.data?.['hide']);
 
+  isXs = this.breakpointObserver.observe([Breakpoints.XSmall]).pipe(map(({ matches }) => matches));
   ltMd = this.breakpointObserver.observe([Breakpoints.XSmall, Breakpoints.Small]).pipe(map(({ matches }) => matches));
 
   planControl = new FormControl<string | null>(this.store.selectSnapshot(PlansState.selectedPlanId));
-  plans = this.store.select(PlansState.plans).pipe(map(plans => Object.keys(plans)));
+  plans = this.store.select(PlansState.plans);
 
   constructor(
     activatedRoute: ActivatedRoute,
@@ -74,12 +75,16 @@ export class AppComponent {
 
     activatedRoute.queryParamMap.pipe(takeUntilDestroyed()).subscribe(queryParams => {
       const id = queryParams.get('client');
-      if (id !== null)
+      if (id !== null && id !== undefined)
         this.store.dispatch(new ChangeSelectedClient(+id));
     });
   }
 
   addPlan() {
 
+  }
+
+  opened() {
+    console.log('opened');
   }
 }

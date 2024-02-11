@@ -1,7 +1,7 @@
 <header>
   <mat-toolbar>
     @if (ltMd | async) {
-      <button mat-icon-button (click)="routeMenu.toggle()">
+      <button mat-icon-button (click)="sidenav.toggle()">
         <mat-icon>menu</mat-icon>
       </button>
     } @else {
@@ -20,8 +20,8 @@
       <mat-label>Plan</mat-label>
       <mat-select [formControl]="planControl">
         <mat-option [value]="null" (click)="addPlan()"><mat-icon>add</mat-icon> Add new...</mat-option>
-        @for (plan of plans | async; track plan) {
-          <mat-option [value]="plan">{{plan}}</mat-option>
+        @for (plan of plans | async | keyvalue; track plan.key) {
+          <mat-option [value]="plan.key">{{plan.value.name}}</mat-option>
         }
       </mat-select>
     </mat-form-field>
@@ -37,8 +37,12 @@
   </mat-toolbar>
 </header>
 
-<mat-sidenav-container>
-  <mat-sidenav mode="over" #routeMenu>
+<mat-sidenav-container [class.xs]="isXs | async">
+  <mat-sidenav
+    mode="over"
+    [style.visible]="ltMd | async"
+    #sidenav
+  >
     <mat-nav-list>
       @for (route of routes; track route) {
         <a mat-list-item [routerLink]="route.path" routerLinkActive="active" ariaCurrentWhenActive="page">
