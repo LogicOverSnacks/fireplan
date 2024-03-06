@@ -8,7 +8,7 @@
   } -->
 </div>
 
-Success: {{ successRate() }}
+Success: {{ successRate() * 100 | number:'1.0-2' }}%
 
 <!--
 
@@ -69,6 +69,7 @@ Success: {{ successRate() }}
     <svg [attr.viewBox]="'0 0 ' + (xOffset + 300) + ' 100'">
       <path class="path" [attr.d]="path()" stroke="transparent" stroke-width="0.25" fill="lightsteelblue" fill-opacity="0.8"></path>
       <path class="percentiles-path" [attr.d]="percentilesPath()" stroke="darkblue" stroke-width="0.25" fill="lightsteelblue"></path>
+      <path class="median-path" [attr.d]="medianPath()" stroke="white" stroke-width="0.25" fill="none"></path>
 
       <line class="x-axis"
         [attr.x1]="xOffset"

@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, viewChild, input, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, viewChild, input, signal, computed } from '@angular/core';
 import { MatSelectModule } from '@angular/material/select';
 import moment, { Moment } from 'moment';
 
@@ -21,6 +21,7 @@ import { AppGraphDisplayPipe } from './graph-display.pipe';
     @use 'theme' as theme;
 
     $left-margin: 60px;
+    $right-margin: 74px;
 
     :host {
       display: flex;
@@ -46,7 +47,7 @@ import { AppGraphDisplayPipe } from './graph-display.pipe';
             content: '';
             position: absolute;
             right: -8px;
-            top: calc(50% - 1px);
+            top: 50%; // calc(50% - 1px);
             width: 6px;
             border-top: 1px solid black;
           }
@@ -55,6 +56,7 @@ import { AppGraphDisplayPipe } from './graph-display.pipe';
 
       svg {
         height: 200px;
+        z-index: 1;
         overflow: visible;
 
         .hover-point {
@@ -62,11 +64,22 @@ import { AppGraphDisplayPipe } from './graph-display.pipe';
           stroke-width: 0.5;
           font-size: 6px;
         }
+
+        .x-axis, .y-axis {
+          stroke-width: 1;
+          stroke: black;
+        }
+      }
+
+      .view-btn {
+        width: 64px;
+        margin: auto 0 auto $right-margin - 64px;
       }
     }
 
     .x-labels {
       margin-left: $left-margin;
+      margin-right: $right-margin;
       margin-top: 5px;
       height: 20px;
       position: relative;
@@ -74,7 +87,7 @@ import { AppGraphDisplayPipe } from './graph-display.pipe';
       .x-label {
         position: absolute;
         top: 0;
-        width: 35px;
+        width: 40px;
         text-align: center;
 
         &.hover-label {
@@ -96,12 +109,12 @@ import { AppGraphDisplayPipe } from './graph-display.pipe';
   template: `
     <div class="svg-container">
       <div class="y-labels">
-        @for (y of yLabels(); track y) {
-          <span class="y-label" [style.bottom]="'calc(' + y.y + '% - 10px)'">
+        @for (label of yLabels(); track label) {
+          <span class="y-label" [style.bottom]="'calc(' + (100 - label.y) + '% - 10px)'">
             @if (cumulative()) {
-              {{y.value | appCurrency}}
+              {{label.value | appCurrency}}
             } @else {
-              {{y.value | number:'1.0-1'}}%
+              {{label.value | number:'1.0-1'}}%
             }
           </span>
         }
@@ -109,12 +122,12 @@ import { AppGraphDisplayPipe } from './graph-display.pipe';
       <svg viewBox="0 0 300 100" #svg (mousemove)="mouseMoved($event)" (mouseleave)="hoverPoint.set(null)">
         <path [attr.d]="path()" stroke-width="0.5" stroke="lightsteelblue" fill="none"></path>
 
-        <line class="x-axis" x1="0" [attr.y1]="xAxis() - 0.25" x2="300" [attr.y2]="xAxis() - 0.25" stroke-width="0.5" stroke="black"></line>
-        <line class="y-axis" x1="0.25" y1="0" x2="0.25" y2="100" stroke-width="0.5" stroke="black"></line>
+        <line class="x-axis" x1="0" [attr.y1]="xAxis()" x2="300" [attr.y2]="xAxis()"></line>
+        <line class="y-axis" x1="0" y1="0" x2="0" y2="100"></line>
 
         @if (hoverPoint(); as point) {
           <circle [attr.cx]="point.x" [attr.cy]="point.y" r="1.5" fill="lightsteelblue" />
-          <text class="hover-point" [attr.x]="point.x + 3" [attr.y]="point.y + 1">
+          <text class="hover-point" [attr.x]="point.x + 6" [attr.y]="point.y + 2">
             @if (cumulative()) {
               {{point.value | appCurrency}}
             } @else {
@@ -123,64 +136,51 @@ import { AppGraphDisplayPipe } from './graph-display.pipe';
           </text>
         }
       </svg>
+
+      <button type="button"
+        mat-button
+        class="view-btn"
+        (click)="cumulative.set(!cumulative())"
+        [matTooltip]="cumulative() ? 'Display annual gains' : 'Display prices'"
+      >
+        {{cumulative() ? '£' : '%'}}
+      </button>
     </div>
     <div class="x-labels">
-      @if (xLabels(); as labels) {
-        <span class="x-label" [style.left]="'calc(' + 100 * labels[0].x / 300 + '% - 17.5px)'">{{labels[0].date.year()}}</span>
-        <span class="x-label" [style.left]="'calc(' + 100 * labels[labels.length - 1].x / 300 + '% - 17.5px)'">
-          {{labels[labels.length - 1].date.year()}}
+      @for (label of xLabels(); track label) {
+        <span class="x-label" [style.left]="'calc(' + 100 * label.x / 300 + '% - 20px)'">{{label.date.year()}}</span>
+      }
+      @if (hoverPoint(); as point) {
+        <span class="x-label hover-label" [style.left]="'calc(' + 100 * point.x / 300 + '% - 20px)'">
+          {{point.date.year()}}
         </span>
-        @if (hoverPoint(); as point) {
-          <span class="x-label hover-label" [style.left]="'calc(' + 100 * point.x / 300 + '% - 17.5px)'">
-            {{point.date.year()}}
-          </span>
-        }
       }
     </div>
   `
 })
-export class GraphPreviewComponent implements OnInit {
+export class GraphPreviewComponent {
   graph = input.required<Graph>();
-
-  cumulative = signal(false);
-  path = signal('');
-  xAxis = signal(100);
-  xLabels = signal<{ date: Moment; x: number; }[]>([]);
-  yLabels = signal<{ value: number; y: number; }[]>([]);
-  hoverPoint = signal<{ x: number; y: number; date: Moment; value: number; } | null>(null);
-  points = signal<{ date: Moment; value: number; x: number; y: number; }[]>([]);
 
   svg = viewChild.required<ElementRef<SVGElement>>('svg');
 
-  ngOnInit() {
+  cumulative = signal(false);
+  hoverPoint = signal<{ x: number; y: number; date: Moment; value: number; } | null>(null);
+
+  points = computed(() => {
     const graph = this.graph();
 
     if (this.cumulative()) {
-      const values = graph.data.reduce((prev, { value }) => [...prev, prev[prev.length - 1] * value], [1]);
-      const xStep = 300 / (values.length - 1);
-      const maxY = Math.max(...values);
+      const prices = graph.data.reduce((prev, { value }) => [...prev, prev[prev.length - 1] * value], [1]);
+      const xStep = 300 / (prices.length - 1);
+      const maxY = Math.max(...prices);
       const yStep = maxY === 1 ? 50 : 100 / maxY;
 
-      this.points.set(graph.data.map(({ date, value }, index) => ({
+      return graph.data.map(({ date }, index) => ({
         date: moment(date),
-        value: value,
+        value: prices[index + 1],
         x: index * xStep,
-        y: 100 - value * yStep
-      })));
-      this.xLabels.set(graph.data.map(({ date }, index) => ({
-        date: moment(date),
-        x: index * xStep
-      })));
-      this.yLabels.set([
-        { value: 1, y: 0 },
-        { value: maxY, y: 100 }
-      ]);
-      this.path.set([
-        `M 0 ${100 - 1 * yStep}`,
-        ...values.map((value, index) => `L ${index * xStep} ${100 - value * yStep}`)
-      ].join(' '));
-
-      return;
+        y: 100 - prices[index + 1] * yStep
+      }));
     }
 
     let year = moment(graph.data[0].date).year();
@@ -191,52 +191,55 @@ export class GraphPreviewComponent implements OnInit {
       if (currentYear === year) {
         growth = growth * value;
       } else {
-        years.push([year, growth]);
+        years.push([year, 100 * (growth - 1)]);
         growth = value;
         year = currentYear;
       }
     }
     years.push([year, growth]);
 
-    const values = years.map(([, value]) => 100 * (value - 1));
-    const xStep = 300 / (values.length - 1);
-    let minY = Math.min(...values);
+    const xStep = 300 / (years.length - 1);
+    const percentages = years.map(([, value]) => value);
+    let minY = Math.min(...percentages);
+    const maxY = Math.max(...percentages);
 
     if (minY > 0) {
       minY = 0;
     }
 
-    const maxY = Math.max(...values);
     const yStep = minY === maxY ? 50 : 100 / (maxY - minY);
 
-    let zeroY: number | null = null;
-    if (minY < 0) {
-      zeroY = 100 + yStep * minY;
-      this.xAxis.set(zeroY);
-    } else {
-      this.xAxis.set(100);
-    }
-
-    this.points.set(years.map(([year, value ], index) => ({
+    return years.map(([year, percentage], index) => ({
       date: moment(`${year}-01-01`),
-      value: 100 * (value - 1),
+      value: percentage,
       x: index * xStep,
-      y: 100 - yStep * (100 * (value - 1) - minY)
-    })));
-    this.xLabels.set(years.map(([year], index) => ({
-      date: moment(`${year}-01-01`),
-      x: index * xStep
-    })));
-    this.yLabels.set([
-      { value: minY, y: 0 },
-      ...(zeroY !== null ? [{ value: 0, y: 100 - zeroY }] : []),
-      { value: maxY, y: 100 },
-    ]);
-    this.path.set(values
-      .map((value, index) => `${index > 0 ? 'L' : 'M'} ${index * xStep} ${100 - yStep * (value - minY)}`)
-      .join(' ')
-    );
-  }
+      y: 100 - yStep * (percentage - minY)
+    }));
+  });
+  path = computed(() => this.points().map(({ x, y }) => `${x === 0 ? 'M' : 'L'} ${x} ${y}`).join(' '));
+  xLabels = computed(() => {
+    const points = this.points();
+    return [points[0], points[points.length - 1]];
+  });
+  yLabels = computed(() => {
+    const points = [...this.points()].sort((a, b) => a.value - b.value);
+    const min = points[0].value > 0 ? { value: 0, y: 100 } : points[0];
+    const max = points[points.length - 1];
+
+    const zeroY = this.xAxis();
+    if (zeroY === 100)
+      return points[0].value === max.value ? [max] : [min, max];
+
+    return [min, { value: 0, y: zeroY }, max];
+  });
+  xAxis = computed(() => {
+    if (this.cumulative()) return 100;
+
+    const percentages = this.points().map(({ value }) => value);
+    const min = Math.min(...percentages);
+
+    return min < 0 ? 100 - 100 * (0 - min) / (Math.max(...percentages) - min) : 100;
+  });
 
   mouseMoved(event: MouseEvent) {
     const pt = new DOMPointReadOnly(event.clientX, event.clientY).matrixTransform(

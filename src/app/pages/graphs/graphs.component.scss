@@ -3,45 +3,9 @@
   padding: 20px;
 }
 
-// mat-accordion {
-//   .graph {
-//     display: flex;
-//     flex-direction: column;
-//     width: fit-content;
-//     $left-margin: 60px;
-
-//     .svg-container {
-//       position: relative;
-//       display: flex;
-//       width: fit-content;
-
-//       .y-labels {
-//         width: $left-margin;
-//         min-width: $left-margin;
-//         position: relative;
-
-//         .y-label {
-//           position: absolute;
-//           right: 8px;
-//         }
-//       }
-
-//       svg {
-//         height: 200px;
-//       }
-//     }
-
-//     .x-labels {
-//       margin-left: $left-margin;
-//       margin-top: 5px;
-//       display: flex;
-//       justify-content: space-between;
-//     }
-//   }
-// }
-
 .graph-selection {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  margin-top: 20px;
 }
