@@ -1,10 +1,10 @@
-import { Component, ElementRef, OnInit, ViewChild, input, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, viewChild, input, signal } from '@angular/core';
 import { MatSelectModule } from '@angular/material/select';
+import moment, { Moment } from 'moment';
 
 import { CoreModule } from '~/core';
 import { Graph } from '~/state/graphs.state';
 import { AppGraphDisplayPipe } from './graph-display.pipe';
-import moment from 'moment';
 
 @Component({
   selector: 'app-graph-preview',
@@ -16,6 +16,10 @@ import moment from 'moment';
     AppGraphDisplayPipe
   ],
   styles: [`
+    @use 'sass:map';
+    @use '@angular/material' as mat;
+    @use 'theme' as theme;
+
     $left-margin: 60px;
 
     :host {
@@ -51,6 +55,13 @@ import moment from 'moment';
 
       svg {
         height: 200px;
+        overflow: visible;
+
+        .hover-point {
+          stroke: white;
+          stroke-width: 0.5;
+          font-size: 6px;
+        }
       }
     }
 
@@ -65,6 +76,11 @@ import moment from 'moment';
         top: 0;
         width: 35px;
         text-align: center;
+
+        &.hover-label {
+          color: lightsteelblue;
+          background: mat.get-color-from-palette(map.get(map.get(theme.$app-theme, color), background), card);
+        }
 
         &::before {
           content: '';
@@ -90,16 +106,35 @@ import moment from 'moment';
           </span>
         }
       </div>
-      <svg viewBox="0 0 300 100" #svg (mousemove)="mouseMoved($event)">
+      <svg viewBox="0 0 300 100" #svg (mousemove)="mouseMoved($event)" (mouseleave)="hoverPoint.set(null)">
         <path [attr.d]="path()" stroke-width="0.5" stroke="lightsteelblue" fill="none"></path>
 
         <line class="x-axis" x1="0" [attr.y1]="xAxis() - 0.25" x2="300" [attr.y2]="xAxis() - 0.25" stroke-width="0.5" stroke="black"></line>
         <line class="y-axis" x1="0.25" y1="0" x2="0.25" y2="100" stroke-width="0.5" stroke="black"></line>
+
+        @if (hoverPoint(); as point) {
+          <circle [attr.cx]="point.x" [attr.cy]="point.y" r="1.5" fill="lightsteelblue" />
+          <text class="hover-point" [attr.x]="point.x + 3" [attr.y]="point.y + 1">
+            @if (cumulative()) {
+              {{point.value | appCurrency}}
+            } @else {
+              {{point.value | number:'1.0-1'}}%
+            }
+          </text>
+        }
       </svg>
     </div>
     <div class="x-labels">
-      @for (x of xLabels(); track x) {
-        <span class="x-label" [style.left]="'calc(' + x.x + '% - 17.5px)'">{{x.year}}</span>
+      @if (xLabels(); as labels) {
+        <span class="x-label" [style.left]="'calc(' + 100 * labels[0].x / 300 + '% - 17.5px)'">{{labels[0].date.year()}}</span>
+        <span class="x-label" [style.left]="'calc(' + 100 * labels[labels.length - 1].x / 300 + '% - 17.5px)'">
+          {{labels[labels.length - 1].date.year()}}
+        </span>
+        @if (hoverPoint(); as point) {
+          <span class="x-label hover-label" [style.left]="'calc(' + 100 * point.x / 300 + '% - 17.5px)'">
+            {{point.date.year()}}
+          </span>
+        }
       }
     </div>
   `
@@ -110,12 +145,12 @@ export class GraphPreviewComponent implements OnInit {
   cumulative = signal(false);
   path = signal('');
   xAxis = signal(100);
-  xLabels = signal<{ year: number; x: number; }[]>([]);
+  xLabels = signal<{ date: Moment; x: number; }[]>([]);
   yLabels = signal<{ value: number; y: number; }[]>([]);
-  hovering = signal(false);
+  hoverPoint = signal<{ x: number; y: number; date: Moment; value: number; } | null>(null);
+  points = signal<{ date: Moment; value: number; x: number; y: number; }[]>([]);
 
-  @ViewChild('svg', { static: true })
-  svg!: ElementRef<SVGElement>;
+  svg = viewChild.required<ElementRef<SVGElement>>('svg');
 
   ngOnInit() {
     const graph = this.graph();
@@ -126,10 +161,16 @@ export class GraphPreviewComponent implements OnInit {
       const maxY = Math.max(...values);
       const yStep = maxY === 1 ? 50 : 100 / maxY;
 
-      this.xLabels.set([
-        { year: moment(graph.data[0].date).year(), x: 0 },
-        { year: moment(graph.data[graph.data.length - 1].date).year(), x: 100 }
-      ]);
+      this.points.set(graph.data.map(({ date, value }, index) => ({
+        date: moment(date),
+        value: value,
+        x: index * xStep,
+        y: 100 - value * yStep
+      })));
+      this.xLabels.set(graph.data.map(({ date }, index) => ({
+        date: moment(date),
+        x: index * xStep
+      })));
       this.yLabels.set([
         { value: 1, y: 0 },
         { value: maxY, y: 100 }
@@ -176,13 +217,19 @@ export class GraphPreviewComponent implements OnInit {
       this.xAxis.set(100);
     }
 
-    this.xLabels.set([
-      { year: moment(graph.data[0].date).year(), x: 0 },
-      { year: moment(graph.data[graph.data.length - 1].date).year(), x: 100 }
-    ]);
+    this.points.set(years.map(([year, value ], index) => ({
+      date: moment(`${year}-01-01`),
+      value: 100 * (value - 1),
+      x: index * xStep,
+      y: 100 - yStep * (100 * (value - 1) - minY)
+    })));
+    this.xLabels.set(years.map(([year], index) => ({
+      date: moment(`${year}-01-01`),
+      x: index * xStep
+    })));
     this.yLabels.set([
       { value: minY, y: 0 },
-      ...(zeroY !== null ? [{ value: 0, y: zeroY }] : []),
+      ...(zeroY !== null ? [{ value: 0, y: 100 - zeroY }] : []),
       { value: maxY, y: 100 },
     ]);
     this.path.set(values
@@ -192,7 +239,12 @@ export class GraphPreviewComponent implements OnInit {
   }
 
   mouseMoved(event: MouseEvent) {
-    const pt = new DOMPointReadOnly(event.clientX, event.clientY).matrixTransform((this.svg.nativeElement as any).getScreenCTM().inverse());
-    console.log(event.offsetX, event.offsetY);
+    const pt = new DOMPointReadOnly(event.clientX, event.clientY).matrixTransform(
+      (this.svg().nativeElement as any).getScreenCTM().inverse()
+    );
+
+    const points = this.points();
+    const index = Math.round((points.length - 1) * pt.x / 300);
+    this.hoverPoint.set(points[index]);
   }
 }
