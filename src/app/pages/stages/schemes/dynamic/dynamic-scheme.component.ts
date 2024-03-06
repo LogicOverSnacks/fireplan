@@ -7,7 +7,7 @@ import { MatSliderModule } from '@angular/material/slider';
 import { Store } from '@ngxs/store';
 import { debounceTime, filter, map, skip } from 'rxjs';
 
-import { CoreModule } from '~/core/core.module';
+import { CoreModule } from '~/core';
 import { PatchStage } from '~/state/clients/plans/stages.state';
 import { DynamicWithdrawalScheme } from '~/state/clients/plans/stages.state.model';
 
@@ -32,7 +32,8 @@ export class DynamicSchemeComponent implements OnInit {
   form = new FormGroup({
     adjustment: new FormControl(5, Validators.min(0)),
     target: new FormControl(4, { nonNullable: true, validators: [Validators.min(0.001), Validators.max(100), Validators.required] }),
-    threshold: new FormControl(20, Validators.min(0))
+    threshold: new FormControl(20, Validators.min(0)),
+    minimumRate: new FormControl(0, { nonNullable: true, validators: [Validators.min(0)] })
   });
   adjustment = toSignal(this.form.controls.adjustment.valueChanges, { initialValue: this.form.controls.adjustment.value });
   target = toSignal(this.form.controls.target.valueChanges, { initialValue: this.form.controls.target.value });
@@ -211,12 +212,13 @@ export class DynamicSchemeComponent implements OnInit {
         map(() => this.form.getRawValue()),
         takeUntilDestroyed()
       )
-      .subscribe(({ adjustment, target, threshold }) => {
+      .subscribe(({ adjustment, target, threshold, minimumRate }) => {
         const scheme = {
           type: 'dynamic',
           adjustmentPercentage: adjustment ?? Infinity,
           targetPercentage: target,
-          thresholdPercentage: threshold ?? Infinity
+          thresholdPercentage: threshold ?? Infinity,
+          minimumRate: minimumRate
         } as const;
         store.dispatch(new PatchStage(this.stageId(), { withdrawal: scheme }));
       });
@@ -227,7 +229,8 @@ export class DynamicSchemeComponent implements OnInit {
     this.form.setValue({
       adjustment: scheme.adjustmentPercentage === Infinity ? null : scheme.adjustmentPercentage,
       target: scheme.targetPercentage,
-      threshold: scheme.thresholdPercentage === Infinity ? null : scheme.thresholdPercentage
+      threshold: scheme.thresholdPercentage === Infinity ? null : scheme.thresholdPercentage,
+      minimumRate: scheme.minimumRate
     });
   }
 

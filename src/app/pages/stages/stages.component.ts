@@ -6,11 +6,11 @@ import { MatListModule } from '@angular/material/list';
 import { Select, Store } from '@ngxs/store';
 import { Observable, map, withLatestFrom } from 'rxjs';
 
-import { isDefined } from '~/core';
-import { CoreModule } from '~/core/core.module';
+import { CoreModule, isDefined } from '~/core';
 import { PeopleState } from '~/state/clients/people.state';
 import { AddStage, PatchStage, StagesState } from '~/state/clients/plans/stages.state';
-import { Stage, WithdrawalScheme } from '~/state/clients/plans/stages.state.model';
+import { Portfolio, Stage, WithdrawalScheme } from '~/state/clients/plans/stages.state.model';
+import { DistributionComponent } from './distribution/distribution.component';
 import { SchemeComponent } from './schemes/scheme.component';
 import { StagesYearBarComponent } from './year-bar.component';
 
@@ -18,9 +18,10 @@ type StageView = {
   id: string;
   name: string;
   endYear: number | undefined;
-  // expensesControl: FormControl<number | null>;
   income: Record<string, [string, FormControl<number | null>]>;
   scheme: WithdrawalScheme | undefined;
+  portfolioDistribution: Portfolio | undefined;
+  portfolioDistributionFrequency: number | undefined;
 };
 
 @Component({
@@ -31,6 +32,7 @@ type StageView = {
     MatListModule,
 
     CoreModule,
+    DistributionComponent,
     SchemeComponent,
     StagesYearBarComponent
   ],
@@ -50,7 +52,9 @@ export class StagesComponent {
         person.id,
         [person.name, new FormControl(stage.incomeByPerson?.[person.id] ?? null)]
       ])),
-      scheme: stage.withdrawal
+      scheme: stage.withdrawal,
+      portfolioDistribution: stage.portfolioDistribution,
+      portfolioDistributionFrequency: stage.portfolioRedistributionFrequency
     })))
   );
 
@@ -99,7 +103,8 @@ export class StagesComponent {
           type: 'dynamic',
           targetPercentage: 5,
           adjustmentPercentage: 5,
-          thresholdPercentage: 20
+          thresholdPercentage: 20,
+          minimumRate: 0
         }
       };
     this.store.dispatch(new AddStage(stage, previousStage?.id ?? null));

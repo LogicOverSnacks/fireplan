@@ -1,12 +1,13 @@
 import { Component } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
-import { MatListModule } from '@angular/material/list';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { MatSelectModule } from '@angular/material/select';
 import { Select, Store } from '@ngxs/store';
 import { Observable } from 'rxjs';
 
-import { CoreModule } from '~/core/core.module';
+import { CoreModule } from '~/core';
 import {
   AddOrUpdateGraph,
   DeleteGraph,
@@ -20,16 +21,19 @@ import {
   SetStocksGraph
 } from '~/state/graphs.state';
 import { AddOrEditGraphDialogComponent, AddOrEditGraphDialogData } from './add-or-edit-graph-dialog.component';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { AppGraphDisplayPipe } from './graph-display.pipe';
+import { GraphPreviewComponent } from './graph-preview.component';
 
 @Component({
   selector: 'app-graphs',
   standalone: true,
   imports: [
-    MatListModule,
+    MatExpansionModule,
     MatSelectModule,
 
-    CoreModule
+    CoreModule,
+    GraphPreviewComponent
+    //AppGraphDisplayPipe
   ],
   templateUrl: './graphs.component.html',
   styleUrl: './graphs.component.scss'

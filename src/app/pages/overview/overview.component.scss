@@ -17,3 +17,51 @@
   display: flex;
   gap: 10px;
 }
+
+.graph {
+  $left-margin: 60px;
+
+  .svg-container {
+    position: relative;
+    display: flex;
+  }
+
+  svg {
+    .x-axis, .y-axis {
+      stroke: black;
+      stroke-width: 0.5;
+    }
+  }
+
+  .person-ages {
+    .person {
+      display: flex;
+      width: 100%;
+    }
+
+    .name {
+      font-size: 12px;
+      flex: 0 0 $left-margin;
+    }
+
+    .ages {
+      display: flex;
+      width: calc(100% - $left-margin);
+
+      .age {
+        font-size: 12px;
+        overflow: hidden;
+      }
+    }
+  }
+
+  .y-labels {
+    width: $left-margin;
+    min-width: $left-margin;
+
+    .y-label {
+      position: absolute;
+      left: 0;
+    }
+  }
+}

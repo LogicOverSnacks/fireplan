@@ -1,3 +1,4 @@
+export { CoreModule } from './core.module';
 export { CryptoApiService } from './crypto.api.service';
 export { FundsApiService } from './funds.api.service';
 

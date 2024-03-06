@@ -7,7 +7,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { Store } from '@ngxs/store';
 import { map } from 'rxjs';
 
-import { CoreModule } from '~/core/core.module';
+import { CoreModule } from '~/core';
 import { PlansState } from '~/state/clients/plans.state';
 import { Plan } from '~/state/clients/plans.state.model';
 

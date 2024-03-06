@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 
-import { CoreModule } from '~/core/core.module';
+import { CoreModule } from '~/core';
 import { Graph } from '~/state/graphs.state';
 
 export type AddOrEditGraphDialogData = {

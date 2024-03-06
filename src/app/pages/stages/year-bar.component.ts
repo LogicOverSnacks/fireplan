@@ -5,7 +5,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatListModule } from '@angular/material/list';
 import { fromEvent, takeUntil, throttleTime } from 'rxjs';
 
-import { CoreModule } from '~/core/core.module';
+import { CoreModule } from '~/core';
 
 @Component({
   selector: 'app-stages-year-bar',

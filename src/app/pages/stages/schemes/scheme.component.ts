@@ -5,21 +5,20 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatListModule } from '@angular/material/list';
 import { MatSelectModule } from '@angular/material/select';
 import { Store } from '@ngxs/store';
+import { skip } from 'rxjs';
 
-import { CoreModule } from '~/core/core.module';
-import { PatchStage } from '~/state/clients/plans/stages.state';
+import { CoreModule } from '~/core';
+import { PatchStage, StagesState } from '~/state/clients/plans/stages.state';
 import { WithdrawalScheme } from '~/state/clients/plans/stages.state.model';
 import { ConstantSchemeComponent } from './constant/constant-scheme.component';
 import { DynamicSchemeComponent } from './dynamic/dynamic-scheme.component';
-import { skip } from 'rxjs';
 
 @Component({
   selector: 'app-stages-scheme',
   standalone: true,
   template: `
     <h6 class="mat-headline-6">
-      Withdrawals
-      <mat-icon inline matTooltip="How much money to withdraw each year">info</mat-icon>
+      Withdrawals<mat-icon inline matTooltip="How much money to withdraw each year">info</mat-icon>
     </h6>
     <mat-form-field subscriptSizing="dynamic">
       <mat-label>Type</mat-label>
@@ -43,7 +42,7 @@ import { skip } from 'rxjs';
   styles: [`
     h6 {
       mat-icon {
-        margin-left: 8px;
+        margin-left: 15px;
         vertical-align: bottom;
       }
     }
@@ -64,11 +63,11 @@ import { skip } from 'rxjs';
   ]
 })
 export class SchemeComponent {
-  scheme = input.required<WithdrawalScheme>();
+  scheme = input.required<WithdrawalScheme | undefined>();
   stageId = input.required<string>();
   typeControl = new FormControl<WithdrawalScheme['type']>('constant', { nonNullable: true });
 
-  constructor(store: Store) {
+  constructor(private store: Store) {
     this.typeControl.valueChanges
       .pipe(
         skip(1), // skip the value set in ngOnInit
@@ -83,14 +82,15 @@ export class SchemeComponent {
             withdrawal: type === 'constant'
               ? {
                 type: 'constant',
-                initialRate: scheme.type === 'constant' ? scheme.initialRate : undefined,
-                targetPercentage: scheme.type === 'dynamic' || scheme.initialRate === undefined ? scheme.targetPercentage : undefined
+                initialRate: scheme?.type === 'constant' ? scheme.initialRate : undefined,
+                targetPercentage: scheme?.type === 'dynamic' || scheme?.initialRate === undefined ? scheme?.targetPercentage : undefined
               }
               : {
                 type: 'dynamic',
-                targetPercentage: scheme.targetPercentage ?? 4,
+                targetPercentage: scheme?.targetPercentage ?? 4,
                 thresholdPercentage: 20,
-                adjustmentPercentage: 5
+                adjustmentPercentage: 5,
+                minimumRate: 0
               }
           }
         ));
@@ -98,6 +98,13 @@ export class SchemeComponent {
   }
 
   ngOnInit() {
-    this.typeControl.setValue(this.scheme().type);
+    const type = this.scheme()?.type;
+
+    if (type) {
+      this.typeControl.setValue(type);
+    } else {
+      const stage = this.store.selectSnapshot(StagesState.unrolledStage(this.stageId()));
+      this.typeControl.setValue(stage?.withdrawal.type ?? 'constant');
+    }
   }
 }

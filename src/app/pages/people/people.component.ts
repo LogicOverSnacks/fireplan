@@ -7,7 +7,7 @@ import { Select, Store } from '@ngxs/store';
 import moment from 'moment';
 import { Observable } from 'rxjs';
 
-import { CoreModule } from '~/core/core.module';
+import { CoreModule } from '~/core';
 import { AddOrUpdatePerson, DeletePerson, PeopleState } from '~/state/clients/people.state';
 import { Person } from '~/state/clients/people.state.model';
 import { PersonDialogComponent, PersonDialogData } from './person-dialog.component';

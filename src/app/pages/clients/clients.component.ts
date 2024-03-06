@@ -4,7 +4,7 @@ import { MatListModule } from '@angular/material/list';
 import { Select, Store } from '@ngxs/store';
 import { Observable, map } from 'rxjs';
 
-import { CoreModule } from '~/core/core.module';
+import { CoreModule } from '~/core';
 import { AddClient, ChangeSelectedClient, ClientsState, IncrementMaxClientId, UpdateClientName } from '~/state/clients.state';
 import { Client } from '~/state/clients.state.model';
 

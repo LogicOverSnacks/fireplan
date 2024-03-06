@@ -1,0 +1,17 @@
+h6 {
+  // adjust for the checkbox padding so it is aligned properly
+  $checkbox-padding: calc(-1 * (var(--mdc-checkbox-state-layer-size) - 18px) / 2);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-left: $checkbox-padding !important;
+
+  mat-checkbox {
+    margin-right: $checkbox-padding !important;
+  }
+}
+
+form {
+  display: flex;
+  gap: 10px;
+}

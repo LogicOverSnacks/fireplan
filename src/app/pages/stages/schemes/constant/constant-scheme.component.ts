@@ -7,7 +7,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { Store } from '@ngxs/store';
 import { debounceTime, filter, skip } from 'rxjs';
 
-import { CoreModule } from '~/core/core.module';
+import { CoreModule } from '~/core';
 import { PatchStage } from '~/state/clients/plans/stages.state';
 import { ConstantWithdrawalScheme } from '~/state/clients/plans/stages.state.model';
 

@@ -1,6 +1,12 @@
 import { Injectable } from '@angular/core';
 import { Action, Selector, State, StateContext } from '@ngxs/store';
 
+import constantGraph from '~assets/data/constant.json';
+import inflationGraph from '~assets/data/uk_inflation.json';
+import bondsGraph from '~assets/data/us_bond_yield.json';
+import sAndP500Graph from '~assets/data/s_and_p_500.json';
+import goldGraph from '~assets/data/gold.json';
+
 export type Graph = {
   data: {
     date: string;
@@ -63,15 +69,26 @@ export type GraphsStateModel = {
 
 const defaultState = {
   graphs: {
-    'UK Inflation': { data: [] },
-    'Sterling': { data: [] },
-    'UK Government Bond Index': { data: [] },
-    'S&P 500': { data: [] },
-    'Gold': { data: [] }
+    'Constant': { data: constantGraph.map(data => ({ date: data.date, value: 1 + data.rate / 100 })) },
+    'UK Inflation': {
+      data: inflationGraph.map(data => ({
+        date: data.date,
+        value: Math.pow(1 + data.rate / 100, 1/12)
+      }))
+    },
+    'US 10-year Treasury Bonds': {
+      data: bondsGraph.map(data => ({
+        date: data.date,
+        value: Math.pow(1 + data.rate / 100, 1/12)
+      }))
+    },
+    'S&P 500': { data: sAndP500Graph.map(data => ({ date: data.date, value: 1 + data.rate / 100 })) },
+    'Gold': { data: constantGraph.map(data => ({ date: data.date, value: 1 + data.rate / 100 })) },
+    // { data: goldGraph.map(data => ({ date: data.date, value: 1 + data.rate / 100 })) }
   },
   inflation: 'UK Inflation',
-  cash: 'Sterling',
-  bonds: 'UK Government Bond Index',
+  cash: 'Constant',
+  bonds: 'US 10-year Treasury Bonds',
   stocks: 'S&P 500',
   crypto: 'Gold'
 } satisfies GraphsStateModel;

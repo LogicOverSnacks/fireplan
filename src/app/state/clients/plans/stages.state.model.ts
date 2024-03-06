@@ -25,6 +25,9 @@ export type DynamicWithdrawalScheme = {
   /** threshold for adjusting the withdrawal rate (i.e. the guardrails) */
   thresholdPercentage: number;
 
+  /** min. amount to withdraw per year (will be inflation adjusted) */
+  minimumRate: number;
+
   /** once per year (how often to check for & do these adjustments) range from 0.2 to 12 (once every 5 years to once per month) */
   // frequency: number;
 };

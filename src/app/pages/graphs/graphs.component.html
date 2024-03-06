@@ -1,20 +1,25 @@
 <app-page-title (add)="addGraph()">Graphs</app-page-title>
 
-<mat-list>
+<mat-accordion>
   @for (graph of graphs | async | keyvalue; track graph.key) {
-    <mat-list-item>
-      <span class="name">{{graph.key}}</span>
-      <div matListItemMeta>
+      <mat-expansion-panel>
+        <mat-expansion-panel-header>
+          <span class="name">{{graph.key}}</span>
+        </mat-expansion-panel-header>
+
+        <app-graph-preview [graph]="graph.value"></app-graph-preview>
+      </mat-expansion-panel>
+
+      <!--
         <button mat-icon-button (click)="editGraph(graph.key, graph.value)" matTooltip="Edit">
           <mat-icon>edit</mat-icon>
         </button>
         <button mat-icon-button (click)="deleteGraph(graph.key)" matTooltip="Delete">
           <mat-icon>delete</mat-icon>
         </button>
-      </div>
-    </mat-list-item>
+      -->
   }
-</mat-list>
+</mat-accordion>
 
 <form class="graph-selection" [formGroup]="form">
   <mat-form-field subscriptSizing="dynamic">

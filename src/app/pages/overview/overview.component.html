@@ -8,6 +8,8 @@
   } -->
 </div>
 
+Success: {{ successRate() }}
+
 <!--
 
 <p>
@@ -55,14 +57,33 @@
 -->
 
 <div class="graph">
-  <svg viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">
-    <line class="x-axis" x1="0" y1="100" x2="300" y2="100" stroke="black" stroke-width="1"></line>
-    <line class="y-axis" x1="0" y1="0" x2="0" y2="100" stroke="black" stroke-width="1"></line>
-
-    @for (path of paths(); track path) {
-      <path [attr.d]="path"></path>
+  <div class="svg-container">
+    @if (yLabels(); as labels) {
+      <div class="y-labels">
+        @for (label of labels; track label) {
+          <span class="y-label" [style.bottom]="label.y">{{label.value | appCurrency}}</span>
+        }
+      </div>
     }
-  </svg>
+
+    <svg [attr.viewBox]="'0 0 ' + (xOffset + 300) + ' 100'">
+      <path class="path" [attr.d]="path()" stroke="transparent" stroke-width="0.25" fill="lightsteelblue" fill-opacity="0.8"></path>
+      <path class="percentiles-path" [attr.d]="percentilesPath()" stroke="darkblue" stroke-width="0.25" fill="lightsteelblue"></path>
+
+      <line class="x-axis"
+        [attr.x1]="xOffset"
+        y1="100"
+        [attr.x2]="xOffset + 300"
+        y2="100"
+      ></line>
+      <line class="y-axis"
+        [attr.x1]="xOffset"
+        y1="0"
+        [attr.x2]="xOffset"
+        y2="100"
+      ></line>
+    </svg>
+  </div>
 
   <!-- @if (stages | async; as stages) {
     @if (stages.length > 1) {
@@ -77,15 +98,19 @@
     }
   } -->
 
-  <!-- <div class="person-ages">
-    @for (person of people | async; track person.name) {
-      <div class="person">
-        <div class="ages">
-
+  @if (xLabels(); as people) {
+    <div class="person-ages">
+      @for (person of people | keyvalue; track person.key) {
+        <div class="person">
+          <span class="name">{{person.key}}</span>
+          <div class="ages">
+            @for (label of person.value; track label) {
+              <span class="age" [style.width]="xLabelWidth">{{label}}</span>
+            }
+          </div>
         </div>
-        <span class="name">{{person.name}}'s Age</span>
-      </div>
-    }
-  </div> -->
+      }
+    </div>
+  }
 </div>
 

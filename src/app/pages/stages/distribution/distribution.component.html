@@ -1,0 +1,44 @@
+<h6 class="mat-headline-6">
+  <mat-checkbox [formControl]="enabledControl"></mat-checkbox>
+  Portfolio Redistribution
+  <mat-icon inline matTooltip="In what proportions to distribute the portfolio">info</mat-icon>
+</h6>
+
+@if (enabledControl.value) {
+  <form [formGroup]="form">
+    <mat-form-field subscriptSizing="dynamic" floatLabel="always">
+      <mat-label>Cash</mat-label>
+      <input type="number" matInput formControlName="cash" class="cash-ctrl">
+
+      @if (form.controls.cash.hasError('min')) {
+        <mat-error>Value must be greater than or equal to 0</mat-error>
+      }
+    </mat-form-field>
+    <mat-form-field subscriptSizing="dynamic" floatLabel="always">
+      <mat-label>Bonds</mat-label>
+      <input type="number" matInput formControlName="bonds" class="bonds-ctrl">
+
+      @if (form.controls.bonds.hasError('min')) {
+        <mat-error>Value must be greater than or equal to 0</mat-error>
+      }
+    </mat-form-field>
+    <mat-form-field subscriptSizing="dynamic" floatLabel="always">
+      <mat-label>Stocks</mat-label>
+      <input type="number" matInput formControlName="stocks" class="stocks-ctrl">
+
+      @if (form.controls.stocks.hasError('min')) {
+        <mat-error>Value must be greater than or equal to 0</mat-error>
+      }
+    </mat-form-field>
+    <mat-form-field subscriptSizing="dynamic" floatLabel="always">
+      <mat-label>Crypto</mat-label>
+      <input type="number" matInput formControlName="crypto" class="crypto-ctrl">
+
+      @if (form.controls.crypto.hasError('min')) {
+        <mat-error>Value must be greater than or equal to 0</mat-error>
+      }
+    </mat-form-field>
+  </form>
+
+  <!-- TODO: pie chart representation -->
+}

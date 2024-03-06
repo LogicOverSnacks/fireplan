@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { MatListModule } from '@angular/material/list';
 import { Store } from '@ngxs/store';
 
-import { CoreModule } from '~/core/core.module';
+import { CoreModule } from '~/core';
 // import { CryptoComponent } from './crypto/crypto.component';
 import { AssetsState } from '~/state/clients/assets.state';
 

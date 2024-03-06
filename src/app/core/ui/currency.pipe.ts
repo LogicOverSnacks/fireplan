@@ -39,6 +39,13 @@ export class AppCurrencyPipe implements PipeTransform {
 
   private convert() {
     const value = this.input === undefined || this.input == null ? null : this.input * this.price;
-    return this.currencyPipe.transform(value, this.currency);
+
+    const [suffix, adjustedValue] = !value ? ['', value]
+      : value >= 1000000000 ? ['B', value / 1000000000]
+      : value >= 1000000 ? ['M', value / 1000000]
+      : value >= 1000 ? ['K', value / 1000]
+      : ['', value];
+
+    return this.currencyPipe.transform(adjustedValue, this.currency, 'symbol', '1.0-1') + suffix;
   }
 }

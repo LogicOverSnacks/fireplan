@@ -16,7 +16,7 @@ import { Store } from '@ngxs/store';
 import { map } from 'rxjs';
 
 import { routes } from './app.routes';
-import { CoreModule } from './core/core.module';
+import { CoreModule } from './core';
 import { ChangeSelectedPlan, PlansState } from './state/clients/plans.state';
 import { ChangeSelectedClient, ClientsState } from './state/clients.state';
 

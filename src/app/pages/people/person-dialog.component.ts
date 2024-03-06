@@ -6,7 +6,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatSelectModule } from '@angular/material/select';
 import { Moment } from 'moment';
 
-import { CoreModule } from '~/core/core.module';
+import { CoreModule } from '~/core';
 import { Person } from '~/state/clients/people.state.model';
 
 export type PersonDialogData = {

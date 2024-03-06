@@ -4,7 +4,7 @@ import { MatListModule } from '@angular/material/list';
 import { Select, Store } from '@ngxs/store';
 import { Observable } from 'rxjs';
 
-import { CoreModule } from '~/core/core.module';
+import { CoreModule } from '~/core';
 import { AddOrReplacePlan, DeletePlan, PlansState, UpdatePlan } from '~/state/clients/plans.state';
 import { Plan } from '~/state/clients/plans.state.model';
 import { PlanDialogComponent, PlanDialogData } from './plan-dialog.component';

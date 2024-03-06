@@ -1,4 +1,4 @@
-import { Selector, StateContext } from '@ngxs/store';
+import { Selector, StateContext, createSelector } from '@ngxs/store';
 
 import { PlanAction } from '~/state/clients.state';
 import { Plan, UnrolledPlan } from '../plans.state.model';
@@ -56,6 +56,10 @@ export class StagesState {
     }
 
     return stages.filter(stage => stage.endYear === undefined || stage.endYear > new Date().getUTCFullYear());
+  }
+
+  static unrolledStage(stageId: string) {
+    return createSelector([StagesState.unrolledStages], stages => stages.find(({ id }) => id === stageId));
   }
 
   @Selector([PlansState.currentPlan])
