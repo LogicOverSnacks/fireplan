@@ -10,6 +10,11 @@
 
 Success: {{ successRate() * 100 | number:'1.0-2' }}%
 
+<h4>Percentile {{percentileSlider.value}}</h4>
+<mat-slider color="primary" min="0" max="100" step="0.1">
+  <input matSliderThumb [formControl]="percentileControl" #percentileSlider>
+</mat-slider>
+
 <!--
 
 <p>
@@ -66,21 +71,23 @@ Success: {{ successRate() * 100 | number:'1.0-2' }}%
       </div>
     }
 
-    <svg [attr.viewBox]="'0 0 ' + (xOffset + 300) + ' 100'">
-      <path class="path" [attr.d]="path()" stroke="transparent" stroke-width="0.25" fill="lightsteelblue" fill-opacity="0.8"></path>
-      <path class="percentiles-path" [attr.d]="percentilesPath()" stroke="darkblue" stroke-width="0.25" fill="lightsteelblue"></path>
-      <path class="median-path" [attr.d]="medianPath()" stroke="white" stroke-width="0.25" fill="none"></path>
+    <svg viewBox="0 0 300 100">
+      @if (paths(); as p) {
+        <!-- <path class="path" [attr.d]="path()" stroke="transparent" stroke-width="0.25" fill="lightsteelblue" fill-opacity="0.8"></path> -->
+        <path class="percentiles-path" [attr.d]="p.percentiles" stroke="darkblue" stroke-width="0.25" fill="lightsteelblue"></path>
+        <path class="median-path" [attr.d]="p.median" stroke="white" stroke-width="0.25" fill="none"></path>
+      }
 
       <line class="x-axis"
-        [attr.x1]="xOffset"
+        x1="0"
         y1="100"
-        [attr.x2]="xOffset + 300"
+        x2="300"
         y2="100"
       ></line>
       <line class="y-axis"
-        [attr.x1]="xOffset"
+        x1="0"
         y1="0"
-        [attr.x2]="xOffset"
+        x2="0"
         y2="100"
       ></line>
     </svg>
@@ -106,7 +113,7 @@ Success: {{ successRate() * 100 | number:'1.0-2' }}%
           <span class="name">{{person.key}}</span>
           <div class="ages">
             @for (label of person.value; track label) {
-              <span class="age" [style.width]="xLabelWidth">{{label}}</span>
+              <span class="age" [style.width]="xLabelWidth()">{{label}}</span>
             }
           </div>
         </div>
