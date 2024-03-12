@@ -8,10 +8,14 @@
   } -->
 </div>
 
-Success: {{ successRate() * 100 | number:'1.0-2' }}%
+<h4 [matTooltip]="((1 - successRate()) * 100 | number:'1.0-2') + '% of scenarios ran out of money'">
+  Success: {{ successRate() * 100 | number:'1.0-2' }}%
+</h4>
 
-<h4>Percentile {{percentileSlider.value}}</h4>
-<mat-slider color="primary" min="0" max="100" step="0.1">
+<h4 [matTooltip]="'Displaying ' + percentileControl.value + '% of all scenarios. The top ' + percentile() + '% best-case and bottom ' + percentile() + '% worst-case scenarios are hidden.'">
+  Visible scenarios: {{ percentileControl.value | number:'1.0-2' }}%
+</h4>
+<mat-slider color="primary" min="0" max="100" step="1">
   <input matSliderThumb [formControl]="percentileControl" #percentileSlider>
 </mat-slider>
 
@@ -63,33 +67,44 @@ Success: {{ successRate() * 100 | number:'1.0-2' }}%
 
 <div class="graph">
   <div class="svg-container">
-    @if (yLabels(); as labels) {
-      <div class="y-labels">
-        @for (label of labels; track label) {
-          <span class="y-label" [style.bottom]="label.y">{{label.value | appCurrency}}</span>
-        }
-      </div>
-    }
+    <div class="y-labels">
+      @for (label of yLabels(); track label) {
+        <span class="y-label" [style.bottom]="'calc(' + (100 - label.y) + '% - 10px)'">{{label.value | appCurrency}}</span>
+      }
+    </div>
 
-    <svg viewBox="0 0 300 100">
+    <svg viewBox="0 0 300 100" #svg (mousemove)="mouseMoved($event)" (mouseleave)="hoverPoint.set(null)">
       @if (paths(); as p) {
-        <!-- <path class="path" [attr.d]="path()" stroke="transparent" stroke-width="0.25" fill="lightsteelblue" fill-opacity="0.8"></path> -->
-        <path class="percentiles-path" [attr.d]="p.percentiles" stroke="darkblue" stroke-width="0.25" fill="lightsteelblue"></path>
-        <path class="median-path" [attr.d]="p.median" stroke="white" stroke-width="0.25" fill="none"></path>
+        <path class="percentiles-path" [attr.d]="p.percentiles"></path>
+        <path class="median-path" [attr.d]="p.median" stroke="white"></path>
       }
 
-      <line class="x-axis"
-        x1="0"
-        y1="100"
-        x2="300"
-        y2="100"
-      ></line>
-      <line class="y-axis"
-        x1="0"
-        y1="0"
-        x2="0"
-        y2="100"
-      ></line>
+      <line class="x-axis" x1="0" y1="100" x2="300" y2="100"></line>
+      <line class="y-axis" x1="0" y1="0" x2="0" y2="100"></line>
+
+      @if (hoverPoint(); as point) {
+        <circle [attr.cx]="point.lower.x" [attr.cy]="point.lower.y" r="1" fill="black" />
+        <text class="hover-point lower"
+          [attr.x]="point.lower.x > 150 ? point.lower.x - 18 : point.lower.x + 6"
+          [attr.y]="point.lower.y + 2"
+        >
+          {{point.lower.value | appCurrency}}
+        </text>
+        <circle [attr.cx]="point.median.x" [attr.cy]="point.median.y" r="1" fill="black" />
+        <text class="hover-point median"
+          [attr.x]="point.median.x > 150 ? point.median.x - 18 : point.median.x + 6"
+          [attr.y]="point.median.y + 2"
+        >
+          {{point.median.value | appCurrency}}
+        </text>
+        <circle [attr.cx]="point.upper.x" [attr.cy]="point.upper.y" r="1" fill="black" />
+        <text class="hover-point upper"
+          [attr.x]="point.upper.x > 150 ? point.upper.x - 18 : point.upper.x + 6"
+          [attr.y]="point.upper.y + 2"
+        >
+          {{point.upper.value | appCurrency}}
+        </text>
+      }
     </svg>
   </div>
 
@@ -106,19 +121,18 @@ Success: {{ successRate() * 100 | number:'1.0-2' }}%
     }
   } -->
 
-  @if (xLabels(); as people) {
-    <div class="person-ages">
-      @for (person of people | keyvalue; track person.key) {
-        <div class="person">
-          <span class="name">{{person.key}}</span>
-          <div class="ages">
-            @for (label of person.value; track label) {
-              <span class="age" [style.width]="xLabelWidth()">{{label}}</span>
-            }
-          </div>
+  <div class="people" matTooltip="Age">
+    @for (person of xLabels(); track person.name) {
+      <div class="person">
+        <span class="name">{{person.name}}</span>
+        <div class="x-labels">
+          @for (label of person.labels; track label) {
+            <span class="x-label" [style.left]="'calc(' + 100 * label.x / 300 + '% - 20px)'">{{label.value}}</span>
+            <!-- <span class="x-label" [style.width]="xLabelWidth()">{{label}}</span> -->
+          }
         </div>
-      }
-    </div>
-  }
+      </div>
+    }
+  </div>
 </div>
 

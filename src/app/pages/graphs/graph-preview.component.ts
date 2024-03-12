@@ -47,7 +47,7 @@ import { AppGraphDisplayPipe } from './graph-display.pipe';
             content: '';
             position: absolute;
             right: -8px;
-            top: 50%; // calc(50% - 1px);
+            top: 50%;
             width: 6px;
             border-top: 1px solid black;
           }
@@ -60,9 +60,8 @@ import { AppGraphDisplayPipe } from './graph-display.pipe';
         overflow: visible;
 
         .hover-point {
-          stroke: white;
-          stroke-width: 0.5;
-          font-size: 6px;
+          fill: white;
+          font-size: 7px;
         }
 
         .x-axis, .y-axis {

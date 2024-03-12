@@ -5,6 +5,7 @@ import { Client } from '../clients.state.model';
 import { Person } from './people.state.model';
 import { mapRecord } from '~/core';
 import { Plan } from './plans.state.model';
+import moment from 'moment';
 
 export class AddOrUpdatePerson {
   static readonly type = '[People] AddOrUpdatePerson';
@@ -23,7 +24,8 @@ export class PeopleState {
       (client: Client) => Math.max(
         ...client.people.map(person =>
           Math.ceil(person.dateOfBirth.year() + person.lifeExpectancy.mean + person.lifeExpectancy.variance*standardDeviations)
-        )
+        ),
+        moment().year()
       )
     );
   }

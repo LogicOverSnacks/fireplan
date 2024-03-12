@@ -1,3 +1,5 @@
+@use 'theme' as theme;
+
 :host {
   display: block;
   padding: 20px;
@@ -20,20 +22,66 @@
 
 .graph {
   $left-margin: 60px;
+  padding-top: 10px;
+  overflow: hidden;
 
   .svg-container {
     position: relative;
     display: flex;
-  }
 
-  svg {
-    .x-axis, .y-axis {
-      stroke: black;
-      stroke-width: 0.5;
+    .y-labels {
+      width: $left-margin;
+      min-width: $left-margin;
+      position: relative;
+
+      .y-label {
+        position: absolute;
+        right: 8px;
+
+        &::before {
+          content: '';
+          position: absolute;
+          right: -8px;
+          top: 50%;
+          width: 6px;
+          border-top: 1px solid black;
+        }
+      }
+    }
+
+    svg {
+      overflow: visible;
+      width: calc(100% - $left-margin);
+
+      .percentiles-path {
+        fill: #7ca6ce;
+        stroke: #466785;
+        stroke-width: 0.25;
+      }
+
+      .median-path {
+        fill: none;
+        stroke-width: 0.25;
+      }
+
+      .x-axis, .y-axis {
+        stroke: black;
+        stroke-width: 0.5;
+      }
+
+      .hover-point {
+        font-size: 4px;
+
+        &.lower { fill: #e6194B; }
+        &.median { fill: black; }
+        &.upper { fill: #3cb44b; }
+      }
     }
   }
 
-  .person-ages {
+  .people {
+    margin-top: 5px;
+
     .person {
       display: flex;
       width: 100%;
@@ -44,24 +92,17 @@
       flex: 0 0 $left-margin;
     }
 
-    .ages {
-      display: flex;
+    .x-labels {
+      position: relative;
       width: calc(100% - $left-margin);
 
-      .age {
-        font-size: 12px;
+      .x-label {
+        position: absolute;
+        top: 0;
+        width: 40px;
+        text-align: center;
         overflow: hidden;
       }
-    }
-  }
-
-  .y-labels {
-    width: $left-margin;
-    min-width: $left-margin;
-
-    .y-label {
-      position: absolute;
-      left: 0;
     }
   }
 }

@@ -1,10 +1,9 @@
 import { Component } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormControl, FormGroup } from '@angular/forms';
+import { FormControl } from '@angular/forms';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatListModule } from '@angular/material/list';
-import { Select, Store } from '@ngxs/store';
-import { Observable, map, withLatestFrom } from 'rxjs';
+import { Store } from '@ngxs/store';
+import { map, withLatestFrom } from 'rxjs';
 
 import { CoreModule, isDefined } from '~/core';
 import { PeopleState } from '~/state/clients/people.state';
@@ -57,20 +56,10 @@ export class StagesComponent {
       portfolioDistributionFrequency: stage.portfolioRedistributionFrequency
     })))
   );
-
-
-  @Select(StagesState.finishedStages)
-  archivedStages!: Observable<Stage[]>;
-
+  archivedStages = this.store.select(StagesState.finishedStages);
   currentYear = new Date().getUTCFullYear();
 
-  constructor(private store: Store) {
-    this.stages
-      .pipe(
-        takeUntilDestroyed(),
-
-      );
-  }
+  constructor(private store: Store) {}
 
   canAddStage(previousStage?: StageView, nextStage?: StageView) {
     const minYear = previousStage?.endYear ?? new Date().getUTCFullYear();
@@ -78,9 +67,8 @@ export class StagesComponent {
   }
 
   addStage(previousStage?: StageView, nextStage?: StageView) {
-    if (!this.canAddStage(previousStage, nextStage)) {
+    if (!this.canAddStage(previousStage, nextStage))
       throw new Error(`Cannot add stage because dates are too close`);
-    }
 
     const thisYear = new Date().getUTCFullYear();
 

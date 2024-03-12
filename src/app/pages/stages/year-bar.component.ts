@@ -1,5 +1,5 @@
 import { DOCUMENT } from '@angular/common';
-import { Component, DestroyRef, EventEmitter, HostListener, Input, Output, inject } from '@angular/core';
+import { Component, DestroyRef, EventEmitter, HostListener, Output, inject, input } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatListModule } from '@angular/material/list';
@@ -43,14 +43,14 @@ import { CoreModule } from '~/core';
     }
   `],
   template: `
-    <span class="year">{{year}}</span>
+    <span class="year">{{year()}}</span>
     <span class="divider">
       <mat-divider></mat-divider>
     </span>
     <span class="add">
       <button type="button"
         mat-button
-        [disabled]="disableAdd"
+        [disabled]="disableAdd()"
         (click)="addClicked.emit()"
         matTooltip="Add new..."
       ><mat-icon>add</mat-icon></button>
@@ -58,11 +58,8 @@ import { CoreModule } from '~/core';
   `,
 })
 export class StagesYearBarComponent {
-  @Input()
-  year!: number;
-
-  @Input()
-  disableAdd = false;
+  year = input.required<number>();
+  disableAdd = input(false);
 
   @Output()
   yearUpdated = new EventEmitter<number>();
@@ -73,7 +70,7 @@ export class StagesYearBarComponent {
   @HostListener('mousedown', ['$event'])
   dragStarted(event: MouseEvent) {
     event.preventDefault();
-    const currentYear = this.year;
+    const currentYear = this.year();
     const startY = event.y;
 
     fromEvent<MouseEvent>(this.document, 'mousemove')
