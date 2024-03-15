@@ -1,23 +1,54 @@
-<!-- <h2>Net worth: {{netWorth | async | currency:'GBP'}}</h2> -->
-<div class="net-worth">
-  <!-- @if (cryptoPercentage | async; as percent) {
+<!-- <h2>Net worth: {{netWorth | async | currency:'GBP'}}</h2>
+  @if (cryptoPercentage | async; as percent) {
     <div class="crypto"
       [style.width]="percent + '%'"
       [matTooltip]="'Cryptocurrency: ' + percent + '% (' + (cryptoAmount | async | currency:'GBP') + ')'"
     ></div>
-  } -->
+  }
+</div> -->
+
+<div class="info-box">
+  <mat-form-field class="success-field"
+    floatLabel="always"
+    subscriptSizing="dynamic"
+    appearance="outline"
+    [matTooltip]="((1 - successRate()) * 100 | number:'1.0-0') + '% of scenarios ran out of money'"
+    [matTooltipPositionAtOrigin]="false"
+  >
+    <mat-label>Success</mat-label>
+    <input [style.display]="'none'" matInput hidden>
+    <span class="text">{{ successRate() * 100 | number:'1.0-0' }}%</span>
+  </mat-form-field>
+
+
+  <div class="right">
+    <mat-form-field floatLabel="always" subscriptSizing="dynamic" appearance="outline">
+      <mat-label>Visible scenarios</mat-label>
+      <input [style.display]="'none'" matInput hidden>
+      <mat-slider class="visibility-slider"
+        color="accent"
+        min="0"
+        max="100"
+        step="1"
+        discrete
+        [displayWith]="sliderDisplay"
+        [matTooltip]="'Displaying ' + percentileControl.value + '% of all scenarios. The top ' + percentile() + '% best-case and bottom ' + percentile() + '% worst-case scenarios are hidden.'"
+        [matTooltipPositionAtOrigin]="false"
+      >
+        <input matSliderThumb [formControl]="percentileControl" #percentileSlider>
+      </mat-slider>
+    </mat-form-field>
+
+    <mat-form-field floatLabel="always" subscriptSizing="dynamic" appearance="outline">
+      <mat-label>View</mat-label>
+      <mat-select class="view-ctrl" [formControl]="logarithmicViewCtrl">
+        <mat-option [value]="false">Linear</mat-option>
+        <mat-option [value]="true">Logarithmic</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
 </div>
 
-<h4 [matTooltip]="((1 - successRate()) * 100 | number:'1.0-2') + '% of scenarios ran out of money'">
-  Success: {{ successRate() * 100 | number:'1.0-2' }}%
-</h4>
-
-<h4 [matTooltip]="'Displaying ' + percentileControl.value + '% of all scenarios. The top ' + percentile() + '% best-case and bottom ' + percentile() + '% worst-case scenarios are hidden.'">
-  Visible scenarios: {{ percentileControl.value | number:'1.0-2' }}%
-</h4>
-<mat-slider color="primary" min="0" max="100" step="1">
-  <input matSliderThumb [formControl]="percentileControl" #percentileSlider>
-</mat-slider>
 
 <!--
 
@@ -74,64 +105,78 @@
     </div>
 
     <svg viewBox="0 0 300 100" #svg (mousemove)="mouseMoved($event)" (mouseleave)="hoverPoint.set(null)">
+      <defs>
+        <clipPath id="clip">
+          <rect width="300" height="100" />
+        </clipPath>
+      </defs>
+
       @if (paths(); as p) {
-        <path class="percentiles-path" [attr.d]="p.percentiles"></path>
-        <path class="median-path" [attr.d]="p.median" stroke="white"></path>
+        <g clip-path="url(#clip)">
+          <path class="percentiles-path" [attr.d]="p.percentiles"></path>
+          <path class="median-path" [attr.d]="p.median" stroke="white"></path>
+        </g>
       }
 
       <line class="x-axis" x1="0" y1="100" x2="300" y2="100"></line>
       <line class="y-axis" x1="0" y1="0" x2="0" y2="100"></line>
 
       @if (hoverPoint(); as point) {
-        <circle [attr.cx]="point.lower.x" [attr.cy]="point.lower.y" r="1" fill="black" />
-        <text class="hover-point lower"
-          [attr.x]="point.lower.x > 150 ? point.lower.x - 18 : point.lower.x + 6"
-          [attr.y]="point.lower.y + 2"
-        >
-          {{point.lower.value | appCurrency}}
-        </text>
-        <circle [attr.cx]="point.median.x" [attr.cy]="point.median.y" r="1" fill="black" />
-        <text class="hover-point median"
-          [attr.x]="point.median.x > 150 ? point.median.x - 18 : point.median.x + 6"
-          [attr.y]="point.median.y + 2"
-        >
-          {{point.median.value | appCurrency}}
-        </text>
-        <circle [attr.cx]="point.upper.x" [attr.cy]="point.upper.y" r="1" fill="black" />
-        <text class="hover-point upper"
-          [attr.x]="point.upper.x > 150 ? point.upper.x - 18 : point.upper.x + 6"
-          [attr.y]="point.upper.y + 2"
-        >
-          {{point.upper.value | appCurrency}}
-        </text>
+        <g class="hover-point lower">
+          <circle [attr.cx]="point.lower.x" [attr.cy]="point.lower.y" r="1" />
+          <text
+            [attr.text-anchor]="point.lower.x > 250 ? 'end' : 'start'"
+            [attr.x]="point.lower.x > 250 ? point.lower.x - 4 : point.lower.x + 4"
+            [attr.y]="point.lower.textY + 1.25"
+          >
+            {{point.lower.value | appCurrency}}
+          </text>
+        </g>
+        <g class="hover-point median">
+          <circle [attr.cx]="point.median.x" [attr.cy]="point.median.y" r="1" />
+          <text
+            [attr.text-anchor]="point.median.x > 250 ? 'end' : 'start'"
+            [attr.x]="point.median.x > 250 ? point.median.x - 4 : point.median.x + 4"
+            [attr.y]="point.median.textY + 1.25"
+          >
+            {{point.median.value | appCurrency}}
+          </text>
+        </g>
+        <g class="hover-point upper">
+          <circle [attr.cx]="point.upper.x" [attr.cy]="point.upper.y" r="1" />
+          <text
+            [attr.text-anchor]="point.upper.x > 250 ? 'end' : 'start'"
+            [attr.x]="point.upper.x > 250 ? point.upper.x - 4 : point.upper.x + 4"
+            [attr.y]="point.upper.textY + 1.25"
+          >
+            {{point.upper.value | appCurrency}}
+          </text>
+        </g>
       }
     </svg>
   </div>
 
-  <!-- @if (stages | async; as stages) {
-    @if (stages.length > 1) {
-      <div class="stages">
-        @for (stage of stages; track stage.name; let last = $last) {
-          <div class="stage">{{stage.name}}</div>
-          @if (!last) {
-            <mat-divider [vertical]="true"></mat-divider>
-          }
-        }
-      </div>
-    }
-  } -->
-
-  <div class="people" matTooltip="Age">
-    @for (person of xLabels(); track person.name) {
-      <div class="person">
+  <div class="people" matTooltip="Age" [matTooltipPositionAtOrigin]="false">
+    @for (person of xLabels(); track person.name; let index = $index) {
+      <div class="person" [class.has-tick]="index === 0">
         <span class="name">{{person.name}}</span>
         <div class="x-labels">
           @for (label of person.labels; track label) {
             <span class="x-label" [style.left]="'calc(' + 100 * label.x / 300 + '% - 20px)'">{{label.value}}</span>
-            <!-- <span class="x-label" [style.width]="xLabelWidth()">{{label}}</span> -->
+          }
+          @if (xHoverPoint(); as pointsByPersonId) {
+            <span class="x-label hover-label" [style.left]="'calc(' + 100 * pointsByPersonId[person.id].x / 300 + '% - 20px)'">
+              {{pointsByPersonId[person.id].label}}
+            </span>
           }
         </div>
       </div>
+    }
+  </div>
+
+  <div class="stages">
+    @for (stage of stageLabels(); track stage.id) {
+      <div class="stage" [style.width]="stage.width">{{stage.name}}</div>
     }
   </div>
 </div>

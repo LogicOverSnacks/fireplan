@@ -21,6 +21,18 @@ h2 {
 }
 
 .stage {
+  mat-expansion-panel-header {
+    --mat-expansion-header-expanded-state-height: 88px;
+
+    .name-field {
+      margin: 16px 0;
+    }
+
+    .delete-btn {
+      margin: auto 0 auto 10px;
+    }
+  }
+
   .fields {
     display: flex;
     flex-direction: column;
@@ -61,4 +73,5 @@ h2 {
 
 .footer-notes {
   font-style: italic;
+  margin-top: 20px;
 }

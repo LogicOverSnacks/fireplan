@@ -1,7 +1,7 @@
 @use '@angular/material' as mat;
 
 $app-primary-palette: mat.define-palette(mat.$amber-palette, 400);
-$app-accent-palette:  mat.define-palette(mat.$teal-palette, A100, A200, A400);
+$app-accent-palette:  mat.define-palette(mat.$blue-grey-palette, A100, A200, A400);
 $app-warn-palette:    mat.define-palette(mat.$red-palette, 300);
 
 $app-theme: mat.define-dark-theme((

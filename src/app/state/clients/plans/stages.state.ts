@@ -79,34 +79,27 @@ export class StagesState {
       if (index <= 0 && action.insertAfterId !== null)
         throw new Error(`Cannot add stage after stage ${action.insertAfterId} because it doesn't exist`);
 
-      if (index > 0 && index < stages.length - 1) {
+      if (action.stage.endYear && action.stage.endYear <= new Date().getUTCFullYear())
+        throw new Error(`Stage endYear must be in the future`);
+
+      if (index < stages.length - 1) {
         const nextStage = stages[index + 1];
         if (action.stage.endYear === undefined)
           throw new Error(`Only the final stage can have a missing endYear`);
-        if (action.stage.endYear <= new Date().getUTCFullYear())
-          throw new Error(`Stage endYear must be in the future`);
+
         if (nextStage.endYear !== undefined && action.stage.endYear >= nextStage.endYear)
           throw new Error(`Stage endYear must be before the next stage's endYear`);
-      } else if (index <= 0) {
-        if (action.stage.endYear === undefined) {
-          if (stages.length > 0)
-            throw new Error(`Only the final stage can have a missing endYear`);
-        } else {
-          if (action.stage.endYear <= new Date().getUTCFullYear())
-            throw new Error(`Stage endYear must be in the future`);
+      }
 
-          if (stages.length > 0) {
-            const nextStage = stages[index + 1];
-            if (nextStage.endYear !== undefined && action.stage.endYear >= nextStage.endYear)
-              throw new Error(`Stage endYear must be before the next stage's endYear`);
-          }
-        }
-      } else {
+      if (index > 0 && stages.length > 0) {
         const previousStage = stages[index - 1];
-        if (previousStage.endYear === undefined)
-          previousStage.endYear = action.stage.endYear;
 
-        action.stage.endYear = undefined;
+        if (index === stages.length) {
+          if (previousStage.endYear === undefined)
+            previousStage.endYear = action.stage.endYear;
+
+          action.stage.endYear = undefined;
+        }
       }
 
       if (index <= 0) {

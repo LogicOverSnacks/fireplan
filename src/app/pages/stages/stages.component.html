@@ -3,55 +3,70 @@
 <app-stages-year-bar
   class="current-year"
   [year]="currentYear"
-  (addClicked)="addStage()"
+  (addClicked)="addStage(undefined, stages()[stages().length - 1])"
 ></app-stages-year-bar>
 
-@if (stages | async; as stages) {
-  @for (stage of stages; track stage.id; let index = $index) {
-    <mat-expansion-panel class="stage">
-      <mat-expansion-panel-header>
-        {{stage.name}}
-        <!-- <button mat-icon-button color="warn" matTooltip="Delete" (click)="deleteStage(stage)">
-          <mat-icon>close_small</mat-icon>
-        </button> -->
-      </mat-expansion-panel-header>
+@for (stage of stages(); track stage.id; let index = $index) {
+  <mat-expansion-panel class="stage" #panel>
+    <mat-expansion-panel-header>
+      @if (panel.expanded) {
+        <mat-form-field class="name-field"
+          subscriptSizing="dynamic"
+          appearance="outline"
+          @nameField
+          [@.disabled]="animationDisabled"
+          (click)="$event.stopPropagation()"
+        >
+          <mat-label>Name</mat-label>
+          <input matInput [formControl]="stage.nameCtrl">
+        </mat-form-field>
+        <button mat-icon-button class="delete-btn" color="warn" (click)="deleteStage(stage)"
+          matTooltip="Delete stage"
+          [matTooltipPositionAtOrigin]="false"
+          matTooltipPosition="right"
+        >
+          <mat-icon>delete</mat-icon>
+        </button>
+      } @else {
+        <span class="name" @name [@.disabled]="animationDisabled">{{stage.nameCtrl.value}}</span>
+      }
+    </mat-expansion-panel-header>
 
-      <div class="fields">
-        <h6 class="mat-headline-6">Income (yearly)</h6>
-        <div class="income">
-          @for (person of stage.income | keyvalue; track person.key) {
-            <mat-form-field subscriptSizing="dynamic"
-              floatLabel="always"
-              matTooltip="Leave blank to use the same value as the previous stage"
-            >
-              <mat-label>{{person.value[0]}}</mat-label>
-              <input type="number" matInput [placeholder]="getIncome(stages, index, person.key) + ''" [formControl]="person.value[1]">
-            </mat-form-field>
-          }
-        </div>
-
-        <app-stages-scheme [stageId]="stage.id" [scheme]="stage.scheme"></app-stages-scheme>
-
-        <app-stages-distribution
-          [stageId]="stage.id"
-          [distribution]="stage.portfolioDistribution"
-          [frequency]="stage.portfolioDistributionFrequency"
-        ></app-stages-distribution>
+    <div class="fields">
+      <h6 class="mat-headline-6">Income (yearly)</h6>
+      <div class="income">
+        @for (person of stage.incomeByPerson; track person.id) {
+          <mat-form-field subscriptSizing="dynamic"
+            floatLabel="always"
+            matTooltip="Leave blank to use the same value as the previous stage"
+          >
+            <mat-label>{{person.name}}</mat-label>
+            <input type="number" matInput [placeholder]="getIncome(stages(), index, person.id) + ''" [formControl]="person.incomeCtrl">
+          </mat-form-field>
+        }
       </div>
-    </mat-expansion-panel>
 
-    @if (stage.endYear !== undefined) {
-      <app-stages-year-bar
-        [year]="stage.endYear"
-        [disableAdd]="!canAddStage(stage, stages[index + 1])"
-        (yearUpdated)="updateYear(stage.id, $event)"
-        (addClicked)="addStage(stage, stages[index + 1])"
-      ></app-stages-year-bar>
-    }
+      <app-stages-scheme [stageId]="stage.id" [scheme]="stage.scheme"></app-stages-scheme>
+
+      <app-stages-distribution
+        [stageId]="stage.id"
+        [distribution]="stage.portfolioDistribution"
+        [frequency]="stage.portfolioDistributionFrequency"
+      ></app-stages-distribution>
+    </div>
+  </mat-expansion-panel>
+
+  @if (stage.endYear !== undefined) {
+    <app-stages-year-bar
+      [year]="stage.endYear"
+      [disableAdd]="!canAddStage(stage, stages()[index + 1])"
+      (yearUpdated)="updateYear(stage.id, $event)"
+      (addClicked)="addStage(stage, stages()[index + 1])"
+    ></app-stages-year-bar>
   }
 }
 
-@if (archivedStages | async; as stages) {
+@if (archivedStages(); as stages) {
   @if (stages.length > 0) {
     <h2 class="mat-headline-4">Archive</h2>
 

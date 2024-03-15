@@ -27,6 +27,8 @@
     "@angular/ssr": "^17.2.2",
     "@ngxs/storage-plugin": "^3.8.2",
     "@ngxs/store": "^3.8.2",
+    "@stdlib/stats-base-dists-normal-cdf": "^0.2.1",
+    "@stdlib/stats-base-dists-normal-quantile": "^0.2.1",
     "express": "^4.18.2",
     "moment": "^2.30.1",
     "sha3": "^2.1.4",

@@ -28,15 +28,25 @@ export class ChangeSelectedClient {
   constructor(public id: number) {}
 }
 
-const createClient = (id: number) => ({
-  archived: false,
-  name: `Client ${id}`,
-  currency: 'GBP',
-  people: [],
-  plans: {},
-  selectedPlanId: null,
-  assets: []
-} satisfies Client);
+const createClient = (id: number) => {
+  const planId = crypto.randomUUID();
+
+  return {
+    archived: false,
+    name: `Client ${id}`,
+    currency: 'GBP',
+    people: [],
+    plans: {
+      [planId]: {
+        inheritsFrom: null,
+        name: 'Default',
+        stages: []
+      }
+    },
+    selectedPlanId: planId,
+    assets: []
+  } satisfies Client;
+};
 
 @State<ClientsStateModel>({
   name: 'clients',
