@@ -8,7 +8,7 @@ import { Store } from '@ngxs/store';
 import cdf from '@stdlib/stats-base-dists-normal-cdf';
 import quantile from '@stdlib/stats-base-dists-normal-quantile';
 import moment, { Moment } from 'moment';
-import { combineLatest, map, startWith, switchMap, throttleTime } from 'rxjs';
+import { combineLatest, map, throttleTime } from 'rxjs';
 
 import { CoreModule, mapRecord } from '~/core';
 import { AssetsState } from '~/state/clients/assets.state';
@@ -418,9 +418,7 @@ export class OverviewComponent {
       const endYear = Math.min(stage.endYear ?? maxYear, maxYear);
 
       for (; startYear + year < endYear; ++year) {
-        const yearlyIncome = Object.values(stage.incomeByPerson)
-          .map(income => income * totalInflation)
-          .reduce((total, value) => total + value, 0);
+        const yearlyIncome = Object.values(stage.incomeByPerson).reduce((total, value) => total + value, 0) * totalInflation;
 
         const startOfYearTotal = Object.values(portfolio).reduce((total, value) => total + value, 0);
 

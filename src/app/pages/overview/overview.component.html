@@ -176,7 +176,7 @@
 
   <div class="stages">
     @for (stage of stageLabels(); track stage.id) {
-      <div class="stage" [style.width]="stage.width">{{stage.name}}</div>
+      <div class="stage" [style.width]="stage.width" [matTooltip]="stage.name">{{stage.name}}</div>
     }
   </div>
 </div>

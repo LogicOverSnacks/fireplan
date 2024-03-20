@@ -7,18 +7,17 @@
 ></app-stages-year-bar>
 
 @for (stage of stages(); track stage.id; let index = $index) {
-  <mat-expansion-panel class="stage" #panel>
+  <mat-expansion-panel class="stage" #panel @disabled>
     <mat-expansion-panel-header>
       @if (panel.expanded) {
         <mat-form-field class="name-field"
           subscriptSizing="dynamic"
           appearance="outline"
           @nameField
-          [@.disabled]="animationDisabled"
           (click)="$event.stopPropagation()"
         >
           <mat-label>Name</mat-label>
-          <input matInput [formControl]="stage.nameCtrl">
+          <input matInput [formControl]="stage.nameCtrl" (keydown)="$event.stopPropagation()">
         </mat-form-field>
         <button mat-icon-button class="delete-btn" color="warn" (click)="deleteStage(stage)"
           matTooltip="Delete stage"
@@ -28,7 +27,7 @@
           <mat-icon>delete</mat-icon>
         </button>
       } @else {
-        <span class="name" @name [@.disabled]="animationDisabled">{{stage.nameCtrl.value}}</span>
+        <span class="name" @name>{{stage.nameCtrl.value}}</span>
       }
     </mat-expansion-panel-header>
 

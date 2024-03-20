@@ -1,5 +1,5 @@
 import { animate, query, style, transition, trigger } from '@angular/animations';
-import { AfterViewInit, Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -25,7 +25,7 @@ type StageView = {
   id: string;
   nameCtrl: FormControl<string>;
   endYear: number | undefined;
-  incomeByPerson: PersonView[]; // Record<string, [string, FormControl<number | null>]>;
+  incomeByPerson: PersonView[];
   scheme: WithdrawalScheme | undefined;
   portfolioDistribution: Portfolio | undefined;
   portfolioDistributionFrequency: number | undefined;
@@ -46,6 +46,9 @@ type StageView = {
   templateUrl: './stages.component.html',
   styleUrl: './stages.component.scss',
   animations: [
+    trigger('disabled', [
+      transition(':enter', [])
+    ]),
     trigger('name', [
       transition(':enter', [
         style({
@@ -102,10 +105,9 @@ type StageView = {
     ])
   ]
 })
-export class StagesComponent implements AfterViewInit {
+export class StagesComponent {
   destroyRef = inject(DestroyRef)
   details$ = combineLatest([this.store.select(StagesState.stages), this.store.select(PeopleState.people)]);
-  animationDisabled = true;
 
   stages = toSignal(this.details$.pipe(
     map(([stages, people]) => stages.map((stage): StageView => {
@@ -159,10 +161,6 @@ export class StagesComponent implements AfterViewInit {
   currentYear = new Date().getUTCFullYear();
 
   constructor(private store: Store) {}
-
-  ngAfterViewInit() {
-    this.animationDisabled = false;
-  }
 
   canAddStage(previousStage?: StageView, nextStage?: StageView) {
     const minYear = previousStage?.endYear ?? this.currentYear;
