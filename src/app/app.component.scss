@@ -1,5 +1,15 @@
-.spacer {
-  flex: 1 1 auto;
+header {
+  .page-link {
+    border-radius: 0;
+
+    &.active {
+      border-bottom: 2px solid var(--mat-toolbar-container-text-color);
+    }
+  }
+
+  .spacer {
+    flex: 1 1 auto;
+  }
 }
 
 mat-sidenav-container {

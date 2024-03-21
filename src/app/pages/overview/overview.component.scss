@@ -94,6 +94,14 @@
 
       .median-path {
         fill: none;
+        stroke: mat.get-color-from-palette(theme.$app-primary-palette, 500);
+        stroke-width: 0.25;
+      }
+
+      .hovered-path {
+        fill: none;
+        stroke: white;
+        stroke-opacity: 0.5;
         stroke-width: 0.25;
       }
 
@@ -103,12 +111,17 @@
       }
 
       .hover-point {
-        circle { fill: white; }
         text { font-size: 4px; }
 
-        &.lower text { fill: mat.get-color-from-palette(mat.$red-palette, 200); }
-        &.median text { fill: white; }
-        &.upper text { fill: mat.get-color-from-palette(mat.$green-palette, 200); }
+        &.lower {
+          circle, text { fill: mat.get-color-from-palette(mat.$red-palette, 200); }
+        }
+        &.median {
+          circle, text { fill: mat.get-color-from-palette(theme.$app-primary-palette, 500); }
+        }
+        &.upper {
+          circle, text { fill: mat.get-color-from-palette(mat.$green-palette, 200); }
+        }
       }
     }
   }

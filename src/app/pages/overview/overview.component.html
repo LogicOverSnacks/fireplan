@@ -96,88 +96,94 @@
     put a watermark with the url on the graph
 -->
 
-<div class="graph">
-  <div class="svg-container">
-    <div class="y-labels">
-      @for (label of yLabels(); track label) {
-        <span class="y-label" [style.bottom]="'calc(' + (100 - label.y) + '% - 10px)'">{{label.value | appCurrency}}</span>
+@if (cycles().length > 0) {
+  <div class="graph" @fadeIn>
+    <div class="svg-container">
+      <div class="y-labels">
+        @for (label of yLabels(); track label) {
+          <span class="y-label" [style.bottom]="'calc(' + (100 - label.y) + '% - 10px)'">{{label.value | appCurrency}}</span>
+        }
+      </div>
+
+      <svg viewBox="0 0 300 100" #svg (mousemove)="mouseMoved.next($event)" (mouseleave)="mouseMoved.next(null)">
+        <defs>
+          <clipPath id="clip">
+            <rect width="300" height="100" />
+          </clipPath>
+        </defs>
+
+        @if (paths(); as p) {
+          <g clip-path="url(#clip)">
+            <path class="percentiles-path" [attr.d]="p.percentiles"></path>
+            <path class="median-path" [attr.d]="p.median"></path>
+            @if (hoverPath(); as hp) {
+              <path class="hovered-path" [attr.d]="hp"></path>
+            }
+          </g>
+        }
+
+        <line class="x-axis" x1="0" y1="100" x2="300" y2="100"></line>
+        <line class="y-axis" x1="0" y1="0" x2="0" y2="100"></line>
+
+        @if (hoverPoint(); as point) {
+          <g class="hover-point lower">
+            <circle [attr.cx]="point.lower.x" [attr.cy]="point.lower.y" r="1" />
+            <text
+              [attr.text-anchor]="point.lower.x > 250 ? 'end' : 'start'"
+              [attr.x]="point.lower.x > 250 ? point.lower.x - 4 : point.lower.x + 4"
+              [attr.y]="point.lower.textY + 1.25"
+            >
+              {{point.lower.value | appCurrency}}
+            </text>
+          </g>
+          <g class="hover-point median">
+            <circle [attr.cx]="point.median.x" [attr.cy]="point.median.y" r="1" />
+            <text
+              [attr.text-anchor]="point.median.x > 250 ? 'end' : 'start'"
+              [attr.x]="point.median.x > 250 ? point.median.x - 4 : point.median.x + 4"
+              [attr.y]="point.median.textY + 1.25"
+            >
+              {{point.median.value | appCurrency}}
+            </text>
+          </g>
+          <g class="hover-point upper">
+            <circle [attr.cx]="point.upper.x" [attr.cy]="point.upper.y" r="1" />
+            <text
+              [attr.text-anchor]="point.upper.x > 250 ? 'end' : 'start'"
+              [attr.x]="point.upper.x > 250 ? point.upper.x - 4 : point.upper.x + 4"
+              [attr.y]="point.upper.textY + 1.25"
+            >
+              {{point.upper.value | appCurrency}}
+            </text>
+          </g>
+        }
+      </svg>
+    </div>
+
+    <div class="people" matTooltip="Age" [matTooltipPositionAtOrigin]="false">
+      @for (person of xLabels(); track person.name; let index = $index) {
+        <div class="person" [class.has-tick]="index === 0">
+          <span class="name">{{person.name}}</span>
+          <div class="x-labels">
+            @for (label of person.labels; track label) {
+              <span class="x-label" [style.left]="'calc(' + 100 * label.x / 300 + '% - 20px)'">{{label.value}}</span>
+            }
+            @if (xHoverPoint(); as pointsByPersonId) {
+              <span class="x-label hover-label" [style.left]="'calc(' + 100 * pointsByPersonId[person.id].x / 300 + '% - 20px)'">
+                {{pointsByPersonId[person.id].label}}
+              </span>
+            }
+          </div>
+        </div>
       }
     </div>
 
-    <svg viewBox="0 0 300 100" #svg (mousemove)="mouseMoved($event)" (mouseleave)="hoverPoint.set(null)">
-      <defs>
-        <clipPath id="clip">
-          <rect width="300" height="100" />
-        </clipPath>
-      </defs>
-
-      @if (paths(); as p) {
-        <g clip-path="url(#clip)">
-          <path class="percentiles-path" [attr.d]="p.percentiles"></path>
-          <path class="median-path" [attr.d]="p.median" stroke="white"></path>
-        </g>
+    <div class="stages">
+      @for (stage of stageLabels(); track stage.id) {
+        <div class="stage" [style.width]="stage.width" [matTooltip]="stage.name">{{stage.name}}</div>
       }
-
-      <line class="x-axis" x1="0" y1="100" x2="300" y2="100"></line>
-      <line class="y-axis" x1="0" y1="0" x2="0" y2="100"></line>
-
-      @if (hoverPoint(); as point) {
-        <g class="hover-point lower">
-          <circle [attr.cx]="point.lower.x" [attr.cy]="point.lower.y" r="1" />
-          <text
-            [attr.text-anchor]="point.lower.x > 250 ? 'end' : 'start'"
-            [attr.x]="point.lower.x > 250 ? point.lower.x - 4 : point.lower.x + 4"
-            [attr.y]="point.lower.textY + 1.25"
-          >
-            {{point.lower.value | appCurrency}}
-          </text>
-        </g>
-        <g class="hover-point median">
-          <circle [attr.cx]="point.median.x" [attr.cy]="point.median.y" r="1" />
-          <text
-            [attr.text-anchor]="point.median.x > 250 ? 'end' : 'start'"
-            [attr.x]="point.median.x > 250 ? point.median.x - 4 : point.median.x + 4"
-            [attr.y]="point.median.textY + 1.25"
-          >
-            {{point.median.value | appCurrency}}
-          </text>
-        </g>
-        <g class="hover-point upper">
-          <circle [attr.cx]="point.upper.x" [attr.cy]="point.upper.y" r="1" />
-          <text
-            [attr.text-anchor]="point.upper.x > 250 ? 'end' : 'start'"
-            [attr.x]="point.upper.x > 250 ? point.upper.x - 4 : point.upper.x + 4"
-            [attr.y]="point.upper.textY + 1.25"
-          >
-            {{point.upper.value | appCurrency}}
-          </text>
-        </g>
-      }
-    </svg>
+    </div>
   </div>
-
-  <div class="people" matTooltip="Age" [matTooltipPositionAtOrigin]="false">
-    @for (person of xLabels(); track person.name; let index = $index) {
-      <div class="person" [class.has-tick]="index === 0">
-        <span class="name">{{person.name}}</span>
-        <div class="x-labels">
-          @for (label of person.labels; track label) {
-            <span class="x-label" [style.left]="'calc(' + 100 * label.x / 300 + '% - 20px)'">{{label.value}}</span>
-          }
-          @if (xHoverPoint(); as pointsByPersonId) {
-            <span class="x-label hover-label" [style.left]="'calc(' + 100 * pointsByPersonId[person.id].x / 300 + '% - 20px)'">
-              {{pointsByPersonId[person.id].label}}
-            </span>
-          }
-        </div>
-      </div>
-    }
-  </div>
-
-  <div class="stages">
-    @for (stage of stageLabels(); track stage.id) {
-      <div class="stage" [style.width]="stage.width" [matTooltip]="stage.name">{{stage.name}}</div>
-    }
-  </div>
-</div>
-
+} @else {
+  <mat-spinner></mat-spinner>
+}

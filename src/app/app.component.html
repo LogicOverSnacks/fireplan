@@ -7,7 +7,18 @@
     } @else {
       <!-- <mat-nav-list> -->
       @for (route of routes; track route) {
-        <a mat-button [routerLink]="route.path" routerLinkActive="active" ariaCurrentWhenActive="page">
+        <a class="page-link"
+          mat-button
+          [routerLink]="route.path"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{
+            matrixParams: 'exact',
+            queryParams: 'ignored',
+            paths: 'exact',
+            fragment: 'ignored'
+          }"
+          ariaCurrentWhenActive="page"
+        >
           {{route.data?.['title']}}
         </a>
       }

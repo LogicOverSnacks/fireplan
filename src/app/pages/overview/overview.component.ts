@@ -1,42 +1,45 @@
-import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { animate, style, transition, trigger } from '@angular/animations';
+import { Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSliderModule } from '@angular/material/slider';
 import { Store } from '@ngxs/store';
 import cdf from '@stdlib/stats-base-dists-normal-cdf';
 import quantile from '@stdlib/stats-base-dists-normal-quantile';
 import moment, { Moment } from 'moment';
-import { combineLatest, map, throttleTime } from 'rxjs';
+import { Subject, animationFrameScheduler, combineLatest, map, throttleTime } from 'rxjs';
 
-import { CoreModule, mapRecord } from '~/core';
+import { CoreModule } from '~/core';
 import { AssetsState } from '~/state/clients/assets.state';
 import { PeopleState } from '~/state/clients/people.state';
 import { StagesState } from '~/state/clients/plans/stages.state';
-import { DynamicWithdrawalScheme, Portfolio, UnrolledStage } from '~/state/clients/plans/stages.state.model';
 import { GraphsState } from '~/state/graphs.state';
-
-type GraphDelta = {
-  inflation: number;
-  cash: number;
-  bonds: number;
-  stocks: number;
-  crypto: number;
-};
+import { CycleData, GraphDelta, calculateCycles } from './cycle.worker';
 
 @Component({
   selector: 'app-overview',
   standalone: true,
   imports: [
     MatDividerModule,
+    MatProgressSpinnerModule,
     MatSelectModule,
     MatSliderModule,
 
     CoreModule
   ],
   templateUrl: './overview.component.html',
-  styleUrl: './overview.component.scss'
+  styleUrl: './overview.component.scss',
+  animations: [
+    trigger('fadeIn', [
+      transition(':enter', [
+        style({ opacity: 0 }),
+        animate('300ms ease-in-out', style({ opacity: 1 }))
+      ])
+    ])
+  ]
 })
 export class OverviewComponent {
   store = inject(Store);
@@ -54,6 +57,7 @@ export class OverviewComponent {
   logarithmicView = toSignal(this.logarithmicViewCtrl.valueChanges, { initialValue: this.logarithmicViewCtrl.value });
 
   hoverPoint = signal<{
+    mouse: { x:number; y: number; };
     lower: { x: number; y: number; textY: number; value: number; };
     median: { x: number; y: number; textY: number; value: number; };
     upper: { x: number; y: number; textY: number; value: number; };
@@ -126,7 +130,7 @@ export class OverviewComponent {
   initialPortfolio = signal({
     cash: 0,
     bonds: 0,
-    stocks: 394000,
+    stocks: 360000,
     crypto: 0
   });
   initialTotal = computed(() => Object.values(this.initialPortfolio()).reduce((total, value) => total + value, 0));
@@ -189,10 +193,10 @@ export class OverviewComponent {
     : 0
   );
   yMaxVisibleValue = computed(() => this.logarithmicView()
-    ? Math.max(...this.points().upper)
+    ? Math.max(...this.points().upper, 0)
     : Math.min(
-      Math.max(...this.points().upper),
-      Math.max(...this.points().median) * 1.5,
+      Math.max(...this.points().upper, 0),
+      Math.max(...this.points().median, 0) * 1.5,
       this.initialTotal() * 20
     )
   );
@@ -248,6 +252,7 @@ export class OverviewComponent {
     const minMultiplier = min / Math.pow(10, minExp);
 
 
+    // TODO: simplify yInterval by calculating the values
     max - min;
 
 
@@ -259,30 +264,12 @@ export class OverviewComponent {
     }));
   });
 
-  cycles = computed(() => {
-    const graphDeltas = this.deltas();
-    const monthsAvailable = graphDeltas.length;
-
-    const start = this.now();
-    const end = moment(`${this.maxYear()}-01-01`);
-    const cycles: number[][] = [];
-    for (let m = 0; m < monthsAvailable - this.monthsPerCycle(); ++m) {
-      const deltas = graphDeltas.slice(m, m + this.monthsPerCycle());
-      const cycle = this.calculateCycle(
-        start,
-        end,
-        this.initialPortfolio(),
-        this.stages(),
-        deltas
-      );
-      cycles.push(cycle);
-    }
-
-    return cycles;
-  });
+  cycles = signal<number[][]>([]);
 
   successRate = computed(() => {
     const cycles = this.cycles();
+    if (cycles.length <= 0) return 0;
+
     const people = this.people();
     const thisYear = this.now().year();
 
@@ -310,12 +297,15 @@ export class OverviewComponent {
     const lower: number[] = [];
     const median: number[] = [];
     const upper: number[] = [];
-    for (let m = 0; m < this.xVisibleYears() * 12; ++m) {
-      const values = cycles.map(cycle => cycle[m]).sort((a, b) => a - b);
-      const maxIndex = values.length - 1;
-      lower.push(values[Math.floor(maxIndex * (this.percentile() / 100))]);
-      median.push(values[Math.floor(maxIndex * 0.5)]);
-      upper.push(values[Math.floor(maxIndex * (1 - this.percentile() / 100))]);
+
+    if (cycles.length > 0) {
+      for (let m = 0; m < this.xVisibleYears() * 12; ++m) {
+        const values = cycles.map(cycle => cycle[m]).sort((a, b) => a - b);
+        const maxIndex = values.length - 1;
+        lower.push(values[Math.floor(maxIndex * (this.percentile() / 100))]);
+        median.push(values[Math.floor(maxIndex * 0.5)]);
+        upper.push(values[Math.floor(maxIndex * (1 - this.percentile() / 100))]);
+      }
     }
 
     return { lower, median, upper };
@@ -338,174 +328,130 @@ export class OverviewComponent {
     };
   });
 
+  hoverPath = computed(() => {
+    const cycles = this.cycles();
+    const point = this.hoverPoint()?.mouse;
+    if (!point || cycles.length <= 0) return null;
+
+    const xMaxIndex = this.xVisibleYears() * 12 - 1;
+    const xIndex = Math.round((xMaxIndex * point.x) / 300);
+    const yValue = this.getYValue(point.y);
+    const closestCycle = [...cycles].sort((a, b) => Math.abs(yValue - a[xIndex]) - Math.abs(yValue - b[xIndex]))[0];
+
+    if (Math.abs(this.getYCoord(closestCycle[xIndex]) - point.y) > 2) return null;
+
+    return [
+      `M ${this.getXCoord(0)} ${this.getYCoord(this.initialTotal())}`,
+      ...closestCycle.map((value, index) => `L ${this.getXCoord(index)} ${this.getYCoord(value)}`)
+    ].join(' ');
+  });
+
   getXCoord = (value: number): number => value * this.xUnit();
   getYCoord = (value: number): number => this.logarithmicView()
     ? 100 - (
       Math.max(0, Math.log(value) - Math.log(this.yMinVisibleValue()))
     ) * this.yUnit()
     : 100 - value * this.yUnit();
-
-  mouseMoved(event: MouseEvent) {
-    const pt = new DOMPointReadOnly(event.clientX, event.clientY).matrixTransform(
-      (this.svg().nativeElement as any).getScreenCTM().inverse()
-    );
-    const ptX = pt.x < 0 ? 0
-      : pt.x > 300 ? 300
-      : pt.x;
-
-    const points = this.points();
-    const index = Math.round((points.median.length - 1) * ptX / 300);
-    const x = this.getXCoord(index);
-    const lowerY = this.getYCoord(points.lower[index]);
-    const medianY = this.getYCoord(points.median[index]);
-    const upperY = this.getYCoord(points.upper[index]);
-    this.hoverPoint.set({
-      lower: {
-        x: x,
-        y: lowerY <= 0 ? 0
-          : lowerY >= 100 ? 100
-          : lowerY,
-        textY: lowerY <= 12 ? 12
-          : (lowerY >= 98 || medianY >= 93 || upperY >= 88) ? 98
-          : medianY + 5 >= lowerY ? medianY + 5
-          : lowerY,
-        value: points.lower[index]
-      },
-      median: {
-        x: x,
-        y: medianY <= 0 ? 0
-          : medianY >= 100 ? 100
-          : medianY,
-        textY: (medianY <= 7 || lowerY <= 12) ? 7
-          : (medianY >= 93 || upperY >= 88) ? 93
-          : medianY,
-        value: points.median[index]
-      },
-      upper: {
-        x: x,
-        y: upperY <= 0 ? 0
-          : upperY >= 100 ? 100
-          : upperY,
-        textY: (upperY <= 2 || medianY <= 7 || lowerY <= 12) ? 2
-          : upperY >= 88 ? 88
-          : medianY - 5 <= upperY ? medianY - 5
-          : upperY,
-        value: points.upper[index]
-      }
-    });
-  }
+  getYValue = (y: number): number => this.logarithmicView()
+    ? Math.exp((100 - y) / this.yUnit()) * this.yMinVisibleValue()
+    : (100 - y) / this.yUnit();
 
   sliderDisplay = (value: number) => `${value}%`;
 
-  private readonly xCount = 13;
+  mouseMoved = new Subject<MouseEvent | null>();
 
-  private calculateCycle(
-    start: Moment,
-    end: Moment,
-    initialPortfolio: Portfolio,
-    stages: UnrolledStage[],
-    deltas: GraphDelta[],
-  ) {
-    let portfolio = initialPortfolio;
-    let yearlyWithdrawal: number | undefined;
-    let totalInflation = 1;
-    let year = 0;
-    const startYear = start.year();
-    const maxYear = end.year();
-    const data = [Object.values(portfolio).reduce((total, value) => total + value, 0)];
+  constructor() {
+    const cycleWorker = typeof Worker !== 'undefined'
+      ? new Worker(new URL('./cycle.worker', import.meta.url))
+      : null;
+    let cycleWorkerListener: ((ev: MessageEvent) => void) | undefined;
 
-    for (const stage of stages) {
-      const endYear = Math.min(stage.endYear ?? maxYear, maxYear);
+    effect(() => {
+      const data: CycleData = [
+        this.monthsPerCycle(),
+        this.now().year(),
+        this.maxYear(),
+        this.initialPortfolio(),
+        this.stages(),
+        this.deltas()
+      ];
 
-      for (; startYear + year < endYear; ++year) {
-        const yearlyIncome = Object.values(stage.incomeByPerson).reduce((total, value) => total + value, 0) * totalInflation;
+      if (cycleWorker) {
+        if (cycleWorkerListener)
+          cycleWorker.removeEventListener('message', cycleWorkerListener);
 
-        const startOfYearTotal = Object.values(portfolio).reduce((total, value) => total + value, 0);
-
-        const withdrawalScheme = stage.withdrawal;
-        if (withdrawalScheme.type === 'constant') {
-          yearlyWithdrawal = withdrawalScheme.initialRate
-            ? withdrawalScheme.initialRate * totalInflation
-            : (startOfYearTotal * (withdrawalScheme.targetPercentage ?? 0) / 100);
-        } else {
-          yearlyWithdrawal = yearlyWithdrawal === undefined
-            ? startOfYearTotal * withdrawalScheme.targetPercentage / 100
-            : this.calculateWithdrawal(yearlyWithdrawal, startOfYearTotal, withdrawalScheme);
-
-          const minWithdrawal = withdrawalScheme.minimumRate * totalInflation;
-          if (yearlyWithdrawal < minWithdrawal)
-            yearlyWithdrawal = minWithdrawal;
-        }
-
-        const monthlyAdjustment = (yearlyIncome - yearlyWithdrawal) / 12;
-
-        for (let month = 0; month < 12; ++month) {
-          const delta = deltas[year*12 + month];
-          totalInflation = totalInflation * delta.inflation;
-          const grownPortfolio = mapRecord(portfolio, ([asset, amount]) => [asset, amount * delta[asset]]);
-          const monthTotal = Math.max(0, Object.values(grownPortfolio).reduce((total, value) => total + value, monthlyAdjustment));
-
-          if ((year * 12 + month + 1) % stage.portfolioRedistributionFrequency === 0) {
-            portfolio = mapRecord(stage.portfolioDistribution, ([asset, value]) => [asset, value * monthTotal]);
-          } else {
-            if (monthlyAdjustment <= grownPortfolio.cash) {
-              portfolio = {
-                ...grownPortfolio,
-                cash: grownPortfolio.cash - monthlyAdjustment
-              };
-            } else if (monthlyAdjustment <= grownPortfolio.cash + grownPortfolio.bonds) {
-              portfolio = {
-                ...grownPortfolio,
-                cash: 0,
-                bonds: grownPortfolio.bonds - (monthlyAdjustment - grownPortfolio.cash),
-              };
-            } else if (monthlyAdjustment <= grownPortfolio.cash + grownPortfolio.bonds + grownPortfolio.stocks) {
-              portfolio = {
-                ...grownPortfolio,
-                cash: 0,
-                bonds: 0,
-                stocks: grownPortfolio.stocks - (monthlyAdjustment - grownPortfolio.cash - grownPortfolio.bonds),
-              };
-            } else if (monthlyAdjustment <= grownPortfolio.cash + grownPortfolio.bonds + grownPortfolio.stocks + grownPortfolio.crypto) {
-              portfolio = {
-                cash: 0,
-                bonds: 0,
-                stocks: 0,
-                crypto: grownPortfolio.crypto - (monthlyAdjustment - grownPortfolio.cash - grownPortfolio.bonds - grownPortfolio.stocks),
-              };
-            } else {
-              portfolio = {
-                cash: 0,
-                bonds: 0,
-                stocks: 0,
-                crypto: 0
-              };
-            }
-          }
-
-          data.push(monthTotal);
-        }
+        cycleWorkerListener = ({ data }) => this.cycles.set(data);
+        cycleWorker.onmessage = cycleWorkerListener;
+        cycleWorker.postMessage(data);
+      } else {
+        this.cycles.set(calculateCycles(...data));
       }
-    }
+    }, { allowSignalWrites: true });
 
-    return data;
+    this.mouseMoved
+      .pipe(
+        throttleTime(20, animationFrameScheduler, { leading: true, trailing: true }),
+        takeUntilDestroyed()
+      )
+      .subscribe(event => {
+        if (!event) {
+          this.hoverPoint.set(null);
+          return;
+        }
+
+        const pt = new DOMPointReadOnly(event.clientX, event.clientY).matrixTransform(
+          (this.svg().nativeElement as any).getScreenCTM().inverse()
+        );
+        const ptX = pt.x < 0 ? 0
+          : pt.x > 300 ? 300
+          : pt.x;
+        const ptY = pt.y < 0 ? 0
+          : pt.y > 100 ? 100
+          : pt.y;
+
+        const points = this.points();
+        const index = Math.round((points.median.length - 1) * ptX / 300);
+        const x = this.getXCoord(index);
+        const lowerY = this.getYCoord(points.lower[index]);
+        const medianY = this.getYCoord(points.median[index]);
+        const upperY = this.getYCoord(points.upper[index]);
+        this.hoverPoint.set({
+          mouse: { x: ptX, y: ptY },
+          lower: {
+            x: x,
+            y: lowerY <= 0 ? 0
+              : lowerY >= 100 ? 100
+              : lowerY,
+            textY: lowerY <= 12 ? 12
+              : (lowerY >= 98 || medianY >= 93 || upperY >= 88) ? 98
+              : medianY + 5 >= lowerY ? medianY + 5
+              : lowerY,
+            value: points.lower[index]
+          },
+          median: {
+            x: x,
+            y: medianY <= 0 ? 0
+              : medianY >= 100 ? 100
+              : medianY,
+            textY: (medianY <= 7 || lowerY <= 12) ? 7
+              : (medianY >= 93 || upperY >= 88) ? 93
+              : medianY,
+            value: points.median[index]
+          },
+          upper: {
+            x: x,
+            y: upperY <= 0 ? 0
+              : upperY >= 100 ? 100
+              : upperY,
+            textY: (upperY <= 2 || medianY <= 7 || lowerY <= 12) ? 2
+              : upperY >= 88 ? 88
+              : medianY - 5 <= upperY ? medianY - 5
+              : upperY,
+            value: points.upper[index]
+          }
+        });
+      });
   }
 
-  private calculateWithdrawal(lastWithdrawal: number, totalPortfolio: number, scheme: DynamicWithdrawalScheme) {
-    const adjustment = scheme.adjustmentPercentage / 100;
-    const target = scheme.targetPercentage / 100;
-    const threshold = scheme.thresholdPercentage / 100;
-    const lowerThreshold = target / (1 + threshold);
-    const upperThreshold = target * (1 + threshold);
-
-    if (totalPortfolio <= lastWithdrawal) {
-      return totalPortfolio;
-    } else if (lastWithdrawal < totalPortfolio * lowerThreshold) {
-      return Math.min(totalPortfolio * target, lastWithdrawal * (1 + adjustment));
-    } else if (lastWithdrawal > totalPortfolio * upperThreshold) {
-      return Math.max(totalPortfolio * target, lastWithdrawal / (1 + adjustment));
-    }
-
-    return lastWithdrawal;
-  }
+  private readonly xCount = 13;
 }
