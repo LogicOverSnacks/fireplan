@@ -2,7 +2,9 @@ import { animate, style, transition, trigger } from '@angular/animations';
 import { Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSliderModule } from '@angular/material/slider';
@@ -17,13 +19,16 @@ import { AssetsState } from '~/state/clients/assets.state';
 import { PeopleState } from '~/state/clients/people.state';
 import { StagesState } from '~/state/clients/plans/stages.state';
 import { GraphsState } from '~/state/graphs.state';
-import { CycleData, GraphDelta, calculateCycles } from './cycle.worker';
+import { GraphDelta, calculateCycles } from './cycle-calculation';
+import type { CycleData } from './cycle.worker'
 
 @Component({
   selector: 'app-overview',
   standalone: true,
   imports: [
+    MatCheckboxModule,
     MatDividerModule,
+    MatMenuModule,
     MatProgressSpinnerModule,
     MatSelectModule,
     MatSliderModule,
@@ -55,9 +60,11 @@ export class OverviewComponent {
   );
   logarithmicViewCtrl = new FormControl(false, { nonNullable: true });
   logarithmicView = toSignal(this.logarithmicViewCtrl.valueChanges, { initialValue: this.logarithmicViewCtrl.value });
+  displayMedianCtrl = new FormControl(true, { nonNullable: true });
+  displayHoverCtrl = new FormControl(true, { nonNullable: true });
 
   hoverPoint = signal<{
-    mouse: { x:number; y: number; };
+    mouse: { x: number; y: number; };
     lower: { x: number; y: number; textY: number; value: number; };
     median: { x: number; y: number; textY: number; value: number; };
     upper: { x: number; y: number; textY: number; value: number; };
@@ -263,6 +270,15 @@ export class OverviewComponent {
       y: this.getYCoord((index + 1) * this.yInterval())
     }));
   });
+  yHoverPoint = computed(() => {
+    const hoverPoint = this.hoverPoint();
+    if (!hoverPoint) return null;
+
+    return {
+      value: this.getYValue(hoverPoint.mouse.y),
+      y: hoverPoint.mouse.y
+    };
+  });
 
   cycles = signal<number[][]>([]);
 
@@ -380,7 +396,7 @@ export class OverviewComponent {
         if (cycleWorkerListener)
           cycleWorker.removeEventListener('message', cycleWorkerListener);
 
-        cycleWorkerListener = ({ data }) => this.cycles.set(data);
+        cycleWorkerListener = event => this.cycles.set(event.data);
         cycleWorker.onmessage = cycleWorkerListener;
         cycleWorker.postMessage(data);
       } else {

@@ -39,13 +39,26 @@
       </mat-slider>
     </mat-form-field>
 
-    <mat-form-field floatLabel="always" subscriptSizing="dynamic" appearance="outline">
-      <mat-label>View</mat-label>
-      <mat-select class="view-ctrl" [formControl]="logarithmicViewCtrl">
-        <mat-option [value]="false">Linear</mat-option>
-        <mat-option [value]="true">Logarithmic</mat-option>
-      </mat-select>
-    </mat-form-field>
+    <button type="button" mat-icon-button [matMenuTriggerFor]="settingsMenu">
+      <mat-icon>settings</mat-icon>
+    </button>
+    <mat-menu #settingsMenu="matMenu">
+      <ng-template matMenuContent>
+        <div class="graph-settings" (click)="$event.stopPropagation()">
+          <mat-form-field floatLabel="always" subscriptSizing="dynamic" appearance="outline">
+            <mat-label>View</mat-label>
+            <mat-select class="view-ctrl" [formControl]="logarithmicViewCtrl">
+              <mat-option [value]="false">Linear</mat-option>
+              <mat-option [value]="true">Logarithmic</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-checkbox [formControl]="displayMedianCtrl">Display median values</mat-checkbox>
+
+          <mat-checkbox [formControl]="displayHoverCtrl">Display individual scenarios on hover</mat-checkbox>
+        </div>
+      </ng-template>
+    </mat-menu>
   </div>
 </div>
 
@@ -103,6 +116,11 @@
         @for (label of yLabels(); track label) {
           <span class="y-label" [style.bottom]="'calc(' + (100 - label.y) + '% - 10px)'">{{label.value | appCurrency}}</span>
         }
+        @if (yHoverPoint(); as point) {
+          <span class="y-label hover-label" [style.bottom]="'calc(' + (100 - point.y) + '% - 10px)'">
+            {{point.value | appCurrency}}
+          </span>
+        }
       </div>
 
       <svg viewBox="0 0 300 100" #svg (mousemove)="mouseMoved.next($event)" (mouseleave)="mouseMoved.next(null)">
@@ -115,8 +133,10 @@
         @if (paths(); as p) {
           <g clip-path="url(#clip)">
             <path class="percentiles-path" [attr.d]="p.percentiles"></path>
-            <path class="median-path" [attr.d]="p.median"></path>
-            @if (hoverPath(); as hp) {
+            @if (displayMedianCtrl.value) {
+              <path class="median-path" [attr.d]="p.median"></path>
+            }
+            @if (displayHoverCtrl.value && hoverPath(); as hp) {
               <path class="hovered-path" [attr.d]="hp"></path>
             }
           </g>
@@ -136,16 +156,18 @@
               {{point.lower.value | appCurrency}}
             </text>
           </g>
-          <g class="hover-point median">
-            <circle [attr.cx]="point.median.x" [attr.cy]="point.median.y" r="1" />
-            <text
-              [attr.text-anchor]="point.median.x > 250 ? 'end' : 'start'"
-              [attr.x]="point.median.x > 250 ? point.median.x - 4 : point.median.x + 4"
-              [attr.y]="point.median.textY + 1.25"
-            >
-              {{point.median.value | appCurrency}}
-            </text>
-          </g>
+          @if (displayMedianCtrl.value) {
+            <g class="hover-point median">
+              <circle [attr.cx]="point.median.x" [attr.cy]="point.median.y" r="1" />
+              <text
+                [attr.text-anchor]="point.median.x > 250 ? 'end' : 'start'"
+                [attr.x]="point.median.x > 250 ? point.median.x - 4 : point.median.x + 4"
+                [attr.y]="point.median.textY + 1.25"
+              >
+                {{point.median.value | appCurrency}}
+              </text>
+            </g>
+          }
           <g class="hover-point upper">
             <circle [attr.cx]="point.upper.x" [attr.cy]="point.upper.y" r="1" />
             <text

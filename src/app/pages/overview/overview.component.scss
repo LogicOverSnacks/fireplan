@@ -52,6 +52,10 @@
   }
 }
 
+.graph-settings {
+  padding: 10px;
+}
+
 .graph {
   $left-margin: 60px;
   padding-top: 10px;
@@ -77,6 +81,18 @@
           top: calc(50% - 1px);
           width: 6px;
           border-top: 2px solid black;
+        }
+
+        &.hover-label {
+          color: mat.get-color-from-palette(theme.$app-accent-palette, 300);
+          background: linear-gradient(
+            to bottom,
+            transparent,
+            10%,
+            mat.get-color-from-palette(map.get(map.get(theme.$app-theme, color), background), background),
+            90%,
+            transparent
+          );
         }
       }
     }
