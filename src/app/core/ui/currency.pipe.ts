@@ -46,6 +46,11 @@ export class AppCurrencyPipe implements PipeTransform {
       : value >= 1000 ? ['K', value / 1000]
       : ['', value];
 
-    return this.currencyPipe.transform(adjustedValue, this.currency, 'symbol', '1.0-1') + suffix;
+    return this.currencyPipe.transform(
+      adjustedValue,
+      this.currency,
+      'symbol',
+      (adjustedValue ?? 0) >= 100 ? '1.0-0' : '1.0-1'
+    ) + suffix;
   }
 }

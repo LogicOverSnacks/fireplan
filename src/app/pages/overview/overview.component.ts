@@ -12,7 +12,7 @@ import { Store } from '@ngxs/store';
 import cdf from '@stdlib/stats-base-dists-normal-cdf';
 import quantile from '@stdlib/stats-base-dists-normal-quantile';
 import moment, { Moment } from 'moment';
-import { Subject, animationFrameScheduler, combineLatest, map, throttleTime } from 'rxjs';
+import { Subject, animationFrameScheduler, animationFrames, combineLatest, map, pairwise, throttleTime } from 'rxjs';
 
 import { CoreModule } from '~/core';
 import { AssetsState } from '~/state/clients/assets.state';
@@ -71,6 +71,13 @@ export class OverviewComponent {
   } | null>(null);
   now = computed(() => moment());
   maxYear = toSignal(this.store.select(PeopleState.maxYear(3)), { requireSync: true });
+  graphResolution = signal(51);
+  fps = animationFrames().pipe(
+    pairwise(),
+    map(([a, b]) => b.timestamp - a.timestamp),
+    throttleTime(500, animationFrameScheduler),
+    map(delta => 1000 / delta)
+  );
 
   yearsPerCycle = computed(() => this.maxYear() - this.now().year());
   monthsPerCycle = computed(() => this.yearsPerCycle() * 12);
@@ -310,6 +317,11 @@ export class OverviewComponent {
   points = computed(() => {
     const cycles = this.cycles();
 
+    const boundaries: number[][] = [...new Array(this.graphResolution())].map(() => []);
+    const maxIndex = cycles.length - 1;
+    const minHeight = maxIndex * this.percentile() / 100;
+    const segmentHeight = maxIndex * (1 - 2 * this.percentile() / 100) / (boundaries.length - 1);
+
     const lower: number[] = [];
     const median: number[] = [];
     const upper: number[] = [];
@@ -317,20 +329,38 @@ export class OverviewComponent {
     if (cycles.length > 0) {
       for (let m = 0; m < this.xVisibleYears() * 12; ++m) {
         const values = cycles.map(cycle => cycle[m]).sort((a, b) => a - b);
-        const maxIndex = values.length - 1;
-        lower.push(values[Math.floor(maxIndex * (this.percentile() / 100))]);
+        lower.push(values[Math.floor(maxIndex * this.percentile() / 100)]);
         median.push(values[Math.floor(maxIndex * 0.5)]);
         upper.push(values[Math.floor(maxIndex * (1 - this.percentile() / 100))]);
+
+        for (let i = 0; i < boundaries.length; ++i) {
+          boundaries[i].push(values[Math.floor(minHeight + i * segmentHeight)]);
+        }
       }
     }
 
-    return { lower, median, upper };
+    return { boundaries, lower, median, upper };
   });
 
   paths = computed(() => {
-    const { lower, median, upper } = this.points();
+    const { boundaries, lower, median, upper } = this.points();
+
+    const minOpacity = 0.1;
+    const maxOpacity = 1;
+    const segmentsCount = boundaries.length - 1;
+    const opacityDelta = (maxOpacity - minOpacity) / (segmentsCount / 2 - 1);
 
     return {
+      segmentOpacities: [...new Array(segmentsCount)].map((_, index) => index >= segmentsCount / 2
+        ? maxOpacity - (index - segmentsCount / 2) * opacityDelta
+        : minOpacity + index * opacityDelta
+      ),
+      segments: boundaries.slice(0, -1).map((_, index) => [
+        `M ${this.getXCoord(0)} ${this.getYCoord(this.initialTotal())}`,
+        ...boundaries[index].map((value, index) => `L ${this.getXCoord(index)} ${this.getYCoord(value)}`),
+        ...boundaries[index+1].map((value, index) => `L ${this.getXCoord(index)} ${this.getYCoord(value)}`).reverse(),
+        'Z'
+      ].join(' ')),
       median: [
         `M ${this.getXCoord(0)} ${this.getYCoord(this.initialTotal())}`,
         ...median.map((value, index) => `L ${this.getXCoord(index)} ${this.getYCoord(value)}`)
@@ -352,9 +382,13 @@ export class OverviewComponent {
     const xMaxIndex = this.xVisibleYears() * 12 - 1;
     const xIndex = Math.round((xMaxIndex * point.x) / 300);
     const yValue = this.getYValue(point.y);
-    const closestCycle = [...cycles].sort((a, b) => Math.abs(yValue - a[xIndex]) - Math.abs(yValue - b[xIndex]))[0];
 
-    if (Math.abs(this.getYCoord(closestCycle[xIndex]) - point.y) > 2) return null;
+    // remove any cycles that already reached 0 before this x position
+    const aliveCycles = xIndex > 0 ? cycles.filter(cycle => cycle[xIndex - 1] > 0) : [...cycles];
+    // find the cycle with the closest y value to the mouse (at this x position)
+    const closestCycle = aliveCycles.sort((a, b) => Math.abs(yValue - a[xIndex]) - Math.abs(yValue - b[xIndex]))[0];
+    // don't display anything if that closest y value is too far from the mouse
+    if (!closestCycle || Math.abs(this.getYCoord(closestCycle[xIndex]) - point.y) > 2) return null;
 
     return [
       `M ${this.getXCoord(0)} ${this.getYCoord(this.initialTotal())}`,
@@ -403,6 +437,16 @@ export class OverviewComponent {
         this.cycles.set(calculateCycles(...data));
       }
     }, { allowSignalWrites: true });
+
+    this.fps
+      .pipe(takeUntilDestroyed())
+      .subscribe(fps => {
+        if (fps >= 60) {
+          this.graphResolution.set(51);
+        } else {
+          this.graphResolution.set(11);
+        }
+      });
 
     this.mouseMoved
       .pipe(

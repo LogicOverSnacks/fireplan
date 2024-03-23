@@ -112,7 +112,7 @@
 @if (cycles().length > 0) {
   <div class="graph" @fadeIn>
     <div class="svg-container">
-      <div class="y-labels">
+      <div class="y-labels" matTooltip="Net worth" matTooltipPosition="right" [matTooltipPositionAtOrigin]="false">
         @for (label of yLabels(); track label) {
           <span class="y-label" [style.bottom]="'calc(' + (100 - label.y) + '% - 10px)'">{{label.value | appCurrency}}</span>
         }
@@ -132,7 +132,10 @@
 
         @if (paths(); as p) {
           <g clip-path="url(#clip)">
-            <path class="percentiles-path" [attr.d]="p.percentiles"></path>
+            <!-- <path class="percentiles-path" [attr.d]="p.percentiles"></path> -->
+            @for (segment of p.segments; track segment; let index = $index) {
+              <path class="segment-path" [attr.fill-opacity]="p.segmentOpacities[index]" [attr.d]="segment"></path>
+            }
             @if (displayMedianCtrl.value) {
               <path class="median-path" [attr.d]="p.median"></path>
             }
@@ -182,7 +185,7 @@
       </svg>
     </div>
 
-    <div class="people" matTooltip="Age" [matTooltipPositionAtOrigin]="false">
+    <div class="people" matTooltip="Age" matTooltipPosition="above" [matTooltipPositionAtOrigin]="false">
       @for (person of xLabels(); track person.name; let index = $index) {
         <div class="person" [class.has-tick]="index === 0">
           <span class="name">{{person.name}}</span>

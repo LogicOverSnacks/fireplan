@@ -22,7 +22,7 @@
   gap: 20px;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   --mat-form-field-container-vertical-padding: 5px;
 
   .success-field {
@@ -39,6 +39,7 @@
 
   .right {
     display: flex;
+    align-items: center;
     gap: 20px;
 
     .view-ctrl {
@@ -53,7 +54,10 @@
 }
 
 .graph-settings {
-  padding: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .graph {
@@ -101,6 +105,12 @@
       overflow: visible;
       width: calc(100% - $left-margin);
       z-index: 10;
+      shape-rendering: optimizeSpeed;
+
+      .segment-path {
+        fill: mat.get-color-from-palette(theme.$app-accent-palette, 300);
+        stroke: none;
+      }
 
       .percentiles-path {
         fill: mat.get-color-from-palette(theme.$app-accent-palette, 300);
@@ -110,7 +120,7 @@
 
       .median-path {
         fill: none;
-        stroke: mat.get-color-from-palette(theme.$app-primary-palette, 500);
+        stroke: white; // mat.get-color-from-palette(theme.$app-primary-palette, 500);
         stroke-width: 0.25;
       }
 
@@ -133,7 +143,7 @@
           circle, text { fill: mat.get-color-from-palette(mat.$red-palette, 200); }
         }
         &.median {
-          circle, text { fill: mat.get-color-from-palette(theme.$app-primary-palette, 500); }
+          circle, text { fill: white; } // mat.get-color-from-palette(theme.$app-primary-palette, 500); }
         }
         &.upper {
           circle, text { fill: mat.get-color-from-palette(mat.$green-palette, 200); }
