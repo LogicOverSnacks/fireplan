@@ -12,7 +12,7 @@ import { Store } from '@ngxs/store';
 import cdf from '@stdlib/stats-base-dists-normal-cdf';
 import quantile from '@stdlib/stats-base-dists-normal-quantile';
 import moment, { Moment } from 'moment';
-import { Subject, Subscription, animationFrameScheduler, combineLatest, fromEvent, map, takeUntil, throttleTime } from 'rxjs';
+import { Subject, Subscription, animationFrameScheduler, combineLatest, finalize, fromEvent, map, takeUntil, throttleTime } from 'rxjs';
 
 import { CoreModule } from '~/core';
 import { AssetsState } from '~/state/clients/assets.state';
@@ -133,7 +133,6 @@ export class OverviewComponent {
         name: stage.name,
         endYear: stage.endYear,
         width: `${100 * ((stage.endYear ?? maxYear) - previousEndYear) / visibleYears}%`
-        // `calc((100% - ${(stages.length - 1) * 2}px) * ${((stage.endYear ?? maxYear) - previousEndYear) / visibleYears})`
       };
     });
   });
@@ -415,10 +414,32 @@ export class OverviewComponent {
   mouseMoved = new Subject<MouseEvent | null>();
 
   constructor() {
-    const cycleWorker = typeof Worker !== 'undefined'
-      ? new Worker(new URL('./cycle.worker', import.meta.url))
-      : null;
+    const canUseWorkers = typeof Worker !== 'undefined';
+    let cycleWorker: Worker | undefined;
     let cycleWorkerListener: ((ev: MessageEvent) => void) | undefined;
+
+    const cycleData$ = new Subject<CycleData>();
+
+    cycleData$
+      .pipe(
+        throttleTime(500, animationFrameScheduler, { leading: true, trailing: true }),
+        takeUntilDestroyed()
+      )
+      .subscribe(data => {
+        if (canUseWorkers) {
+          if (cycleWorkerListener)
+            cycleWorker?.removeEventListener('message', cycleWorkerListener);
+
+          cycleWorker?.terminate();
+
+          cycleWorker = new Worker(new URL('./cycle.worker', import.meta.url));
+          cycleWorkerListener = event => this.cycles.set(event.data);
+          cycleWorker.onmessage = cycleWorkerListener;
+          cycleWorker.postMessage(data);
+        } else {
+          this.cycles.set(calculateCycles(...data));
+        }
+      })
 
     effect(() => {
       const data: CycleData = [
@@ -430,16 +451,7 @@ export class OverviewComponent {
         this.deltas()
       ];
 
-      if (cycleWorker) {
-        if (cycleWorkerListener)
-          cycleWorker.removeEventListener('message', cycleWorkerListener);
-
-        cycleWorkerListener = event => this.cycles.set(event.data);
-        cycleWorker.onmessage = cycleWorkerListener;
-        cycleWorker.postMessage(data);
-      } else {
-        this.cycles.set(calculateCycles(...data));
-      }
+      cycleData$.next(data);
     }, { allowSignalWrites: true });
 
     this.mouseMoved
@@ -509,39 +521,31 @@ export class OverviewComponent {
 
   stageDragged(stageId: string, event: MouseEvent) {
     event.preventDefault();
-    this.stageDragSubscription?.unsubscribe();
-    const startX = event.pageX;
-    const totalYears = this.xVisibleYears();
-    const xPerYear = this.stagesElement().nativeElement.clientWidth / totalYears;
 
     const stage = this.store.selectSnapshot(StagesState.stages).find(({ id }) => id === stageId);
     if (!stage || stage.endYear === undefined) return;
 
-    const cancel$ = fromEvent(this.document, 'mouseup');
-    const currentEndYear = stage.endYear;
-    let endYear = stage.endYear;
+    const startX = event.pageX;
+    const xPerYear = this.stagesElement().nativeElement.clientWidth / this.xVisibleYears();
+    const originalEndYear = stage.endYear;
 
     fromEvent<MouseEvent>(this.document, 'mousemove')
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        takeUntil(cancel$),
-        throttleTime(50, animationFrameScheduler, { leading: false, trailing: true })
+        takeUntil(fromEvent(this.document, 'mouseup')),
+        throttleTime(50, animationFrameScheduler, { leading: false, trailing: true }),
+        finalize(() => {
+          this.xStageHoverYear.set(null);
+        })
       )
       .subscribe(({ pageX }) => {
-        endYear = Math.round(currentEndYear + (pageX - startX) / xPerYear);
+        const endYear = Math.round(originalEndYear + (pageX - startX) / xPerYear);
         this.xStageHoverYear.set(endYear);
+        this.store.dispatch(new PatchStage(stageId, { endYear }));
       });
-
-      this.stageDragSubscription = cancel$
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe(() => {
-          this.xStageHoverYear.set(null);
-          this.store.dispatch(new PatchStage(stageId, { endYear }));
-        });
   }
 
   private readonly xCount = 13;
   private destroyRef = inject(DestroyRef);
   private document = inject(DOCUMENT);
-  private stageDragSubscription?: Subscription;
 }
