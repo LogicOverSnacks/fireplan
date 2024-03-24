@@ -1,5 +1,5 @@
 import { animate, style, transition, trigger } from '@angular/animations';
-import { Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -12,15 +12,16 @@ import { Store } from '@ngxs/store';
 import cdf from '@stdlib/stats-base-dists-normal-cdf';
 import quantile from '@stdlib/stats-base-dists-normal-quantile';
 import moment, { Moment } from 'moment';
-import { Subject, animationFrameScheduler, animationFrames, combineLatest, map, pairwise, throttleTime } from 'rxjs';
+import { Subject, Subscription, animationFrameScheduler, combineLatest, fromEvent, map, takeUntil, throttleTime } from 'rxjs';
 
 import { CoreModule } from '~/core';
 import { AssetsState } from '~/state/clients/assets.state';
 import { PeopleState } from '~/state/clients/people.state';
-import { StagesState } from '~/state/clients/plans/stages.state';
+import { PatchStage, StagesState } from '~/state/clients/plans/stages.state';
 import { GraphsState } from '~/state/graphs.state';
 import { GraphDelta, calculateCycles } from './cycle-calculation';
 import type { CycleData } from './cycle.worker'
+import { DOCUMENT } from '@angular/common';
 
 @Component({
   selector: 'app-overview',
@@ -49,11 +50,12 @@ import type { CycleData } from './cycle.worker'
 export class OverviewComponent {
   store = inject(Store);
 
+  stagesElement = viewChild.required<ElementRef<HTMLElement>>('stages');
   svg = viewChild.required<ElementRef<SVGElement>>('svg');
   percentileControl = new FormControl(90, { nonNullable: true });
   percentile = toSignal(
     this.percentileControl.valueChanges.pipe(
-      throttleTime(50, undefined, { leading: true, trailing: true }),
+      throttleTime(50, animationFrameScheduler, { leading: true, trailing: true }),
       map(value => (100 - value) / 2)
     ),
     { initialValue: (100 - this.percentileControl.value) / 2 }
@@ -71,13 +73,7 @@ export class OverviewComponent {
   } | null>(null);
   now = computed(() => moment());
   maxYear = toSignal(this.store.select(PeopleState.maxYear(3)), { requireSync: true });
-  graphResolution = signal(51);
-  fps = animationFrames().pipe(
-    pairwise(),
-    map(([a, b]) => b.timestamp - a.timestamp),
-    throttleTime(500, animationFrameScheduler),
-    map(delta => 1000 / delta)
-  );
+  graphResolution = signal(37);
 
   yearsPerCycle = computed(() => this.maxYear() - this.now().year());
   monthsPerCycle = computed(() => this.yearsPerCycle() * 12);
@@ -137,6 +133,7 @@ export class OverviewComponent {
         name: stage.name,
         endYear: stage.endYear,
         width: `${100 * ((stage.endYear ?? maxYear) - previousEndYear) / visibleYears}%`
+        // `calc((100% - ${(stages.length - 1) * 2}px) * ${((stage.endYear ?? maxYear) - previousEndYear) / visibleYears})`
       };
     });
   });
@@ -183,33 +180,51 @@ export class OverviewComponent {
   });
   xHoverPoint = computed(() => {
     const hoverPoint = this.hoverPoint();
-    if (!hoverPoint) return null;
+    // if (!hoverPoint) return null;
 
-    const x = hoverPoint.median.x;
-    const xUnit = this.xUnit() * 12;
-    const start = this.now();
+    const computeLabel =
+      hoverPoint ? (startYear: number) => ({
+        x: hoverPoint.median.x,
+        label: startYear + Math.floor(hoverPoint.median.x / (this.xUnit() * 12))
+      })
+      : this.xStageHoverYear() ? (startYear: number) => {
+        const years = this.xStageHoverYear()! - this.now().year();
+
+        return {
+          x: 300 * years / this.xVisibleYears(),
+          label: startYear + years
+        };
+      }
+      : null;
+
+    if (!computeLabel) return null;
+
+    // const x = hoverPoint.median.x;
+    // const xUnit = this.xUnit() * 12;
 
     return Object.fromEntries(this.people().map(person => [
       person.id,
-      {
-        x: x,
-        label: `${Math.floor(start.diff(person.dateOfBirth, 'years')) + Math.floor(x / xUnit)}`
-      }
+      computeLabel(Math.floor(this.now().diff(person.dateOfBirth, 'years')))
+      // {
+      //   x: x,
+      //   label: `${Math.floor(this.now().diff(person.dateOfBirth, 'years')) + Math.floor(x / xUnit)}`
+      // }
     ]));
   });
+  xStageHoverYear = signal<number | null>(null);
   xLabelWidth = computed(() => {
     const xRemainder = this.xVisibleYears() - this.xInterval() * (this.xCount - 1);
     const labelledXPortion = (this.xVisibleYears() - xRemainder) / this.xVisibleYears();
     return `${100 * labelledXPortion / (this.xCount - 1)}%`;
   });
   yMinVisibleValue = computed(() => this.logarithmicView()
-    ? Math.max(Math.min(...this.points().lower), this.initialTotal() / 4)
+    ? Math.max(Math.min(...this.points().boundaries[0]), this.initialTotal() / 4)
     : 0
   );
   yMaxVisibleValue = computed(() => this.logarithmicView()
-    ? Math.max(...this.points().upper, 0)
+    ? Math.max(...this.points().boundaries[this.points().boundaries.length - 1], 0)
     : Math.min(
-      Math.max(...this.points().upper, 0),
+      Math.max(...this.points().boundaries[this.points().boundaries.length - 1], 0),
       Math.max(...this.points().median, 0) * 1.5,
       this.initialTotal() * 20
     )
@@ -318,20 +333,15 @@ export class OverviewComponent {
     const cycles = this.cycles();
 
     const boundaries: number[][] = [...new Array(this.graphResolution())].map(() => []);
+    const median: number[] = [];
     const maxIndex = cycles.length - 1;
     const minHeight = maxIndex * this.percentile() / 100;
     const segmentHeight = maxIndex * (1 - 2 * this.percentile() / 100) / (boundaries.length - 1);
 
-    const lower: number[] = [];
-    const median: number[] = [];
-    const upper: number[] = [];
-
     if (cycles.length > 0) {
       for (let m = 0; m < this.xVisibleYears() * 12; ++m) {
         const values = cycles.map(cycle => cycle[m]).sort((a, b) => a - b);
-        lower.push(values[Math.floor(maxIndex * this.percentile() / 100)]);
         median.push(values[Math.floor(maxIndex * 0.5)]);
-        upper.push(values[Math.floor(maxIndex * (1 - this.percentile() / 100))]);
 
         for (let i = 0; i < boundaries.length; ++i) {
           boundaries[i].push(values[Math.floor(minHeight + i * segmentHeight)]);
@@ -339,11 +349,11 @@ export class OverviewComponent {
       }
     }
 
-    return { boundaries, lower, median, upper };
+    return { boundaries, median };
   });
 
   paths = computed(() => {
-    const { boundaries, lower, median, upper } = this.points();
+    const { boundaries, median } = this.points();
 
     const minOpacity = 0.1;
     const maxOpacity = 1;
@@ -364,12 +374,6 @@ export class OverviewComponent {
       median: [
         `M ${this.getXCoord(0)} ${this.getYCoord(this.initialTotal())}`,
         ...median.map((value, index) => `L ${this.getXCoord(index)} ${this.getYCoord(value)}`)
-      ].join(' '),
-      percentiles: [
-        `M ${this.getXCoord(0)} ${this.getYCoord(this.initialTotal())}`,
-        ...lower.map((value, index) => `L ${this.getXCoord(index)} ${this.getYCoord(value)}`),
-        ...upper.map((value, index) => `L ${this.getXCoord(index)} ${this.getYCoord(value)}`).reverse(),
-        'Z'
       ].join(' ')
     };
   });
@@ -438,16 +442,6 @@ export class OverviewComponent {
       }
     }, { allowSignalWrites: true });
 
-    this.fps
-      .pipe(takeUntilDestroyed())
-      .subscribe(fps => {
-        if (fps >= 60) {
-          this.graphResolution.set(51);
-        } else {
-          this.graphResolution.set(11);
-        }
-      });
-
     this.mouseMoved
       .pipe(
         throttleTime(20, animationFrameScheduler, { leading: true, trailing: true }),
@@ -472,9 +466,9 @@ export class OverviewComponent {
         const points = this.points();
         const index = Math.round((points.median.length - 1) * ptX / 300);
         const x = this.getXCoord(index);
-        const lowerY = this.getYCoord(points.lower[index]);
+        const lowerY = this.getYCoord(points.boundaries[0][index]);
         const medianY = this.getYCoord(points.median[index]);
-        const upperY = this.getYCoord(points.upper[index]);
+        const upperY = this.getYCoord(points.boundaries[points.boundaries.length - 1][index]);
         this.hoverPoint.set({
           mouse: { x: ptX, y: ptY },
           lower: {
@@ -486,7 +480,7 @@ export class OverviewComponent {
               : (lowerY >= 98 || medianY >= 93 || upperY >= 88) ? 98
               : medianY + 5 >= lowerY ? medianY + 5
               : lowerY,
-            value: points.lower[index]
+            value: points.boundaries[0][index]
           },
           median: {
             x: x,
@@ -507,11 +501,47 @@ export class OverviewComponent {
               : upperY >= 88 ? 88
               : medianY - 5 <= upperY ? medianY - 5
               : upperY,
-            value: points.upper[index]
+            value: points.boundaries[points.boundaries.length - 1][index]
           }
         });
       });
   }
 
+  stageDragged(stageId: string, event: MouseEvent) {
+    event.preventDefault();
+    this.stageDragSubscription?.unsubscribe();
+    const startX = event.pageX;
+    const totalYears = this.xVisibleYears();
+    const xPerYear = this.stagesElement().nativeElement.clientWidth / totalYears;
+
+    const stage = this.store.selectSnapshot(StagesState.stages).find(({ id }) => id === stageId);
+    if (!stage || stage.endYear === undefined) return;
+
+    const cancel$ = fromEvent(this.document, 'mouseup');
+    const currentEndYear = stage.endYear;
+    let endYear = stage.endYear;
+
+    fromEvent<MouseEvent>(this.document, 'mousemove')
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        takeUntil(cancel$),
+        throttleTime(50, animationFrameScheduler, { leading: false, trailing: true })
+      )
+      .subscribe(({ pageX }) => {
+        endYear = Math.round(currentEndYear + (pageX - startX) / xPerYear);
+        this.xStageHoverYear.set(endYear);
+      });
+
+      this.stageDragSubscription = cancel$
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(() => {
+          this.xStageHoverYear.set(null);
+          this.store.dispatch(new PatchStage(stageId, { endYear }));
+        });
+  }
+
   private readonly xCount = 13;
+  private destroyRef = inject(DestroyRef);
+  private document = inject(DOCUMENT);
+  private stageDragSubscription?: Subscription;
 }

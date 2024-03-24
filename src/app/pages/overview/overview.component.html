@@ -132,7 +132,6 @@
 
         @if (paths(); as p) {
           <g clip-path="url(#clip)">
-            <!-- <path class="percentiles-path" [attr.d]="p.percentiles"></path> -->
             @for (segment of p.segments; track segment; let index = $index) {
               <path class="segment-path" [attr.fill-opacity]="p.segmentOpacities[index]" [attr.d]="segment"></path>
             }
@@ -203,9 +202,19 @@
       }
     </div>
 
-    <div class="stages">
-      @for (stage of stageLabels(); track stage.id) {
-        <div class="stage" [style.width]="stage.width" [matTooltip]="stage.name">{{stage.name}}</div>
+    <div class="stages" #stages>
+      @for (stage of stageLabels(); track stage.id; let last = $last) {
+        <div class="stage"
+          [style.width]="stage.width"
+          [matTooltip]="stage.name"
+          matTooltipPosition="below"
+          [matTooltipPositionAtOrigin]="false"
+        >
+          <span class="name">{{stage.name}}</span>
+          @if (!last) {
+            <div class="handle" (mousedown)="stageDragged(stage.id, $event)"></div>
+          }
+        </div>
       }
     </div>
   </div>
