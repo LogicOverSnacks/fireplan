@@ -260,7 +260,7 @@
           transition: opacity 100ms ease-in-out;
         }
 
-        &:hover {
+        &:hover, &.hovered {
           cursor: col-resize;
 
           &::before {

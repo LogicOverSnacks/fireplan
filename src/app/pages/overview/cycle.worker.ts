@@ -1,9 +1,9 @@
 /// <reference lib="webworker" />
 
-import { calculateCycles } from './cycle-calculation';
+import { calculateCycle } from './cycle-calculation';
 
-export type CycleData = Parameters<typeof calculateCycles>;
+export type CycleData = Parameters<typeof calculateCycle>;
 
 addEventListener('message', ({ data }: MessageEvent<CycleData>) => {
-  postMessage(calculateCycles(...data));
+  postMessage(calculateCycle(...data));
 });

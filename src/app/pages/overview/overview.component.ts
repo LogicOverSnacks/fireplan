@@ -1,4 +1,5 @@
 import { animate, style, transition, trigger } from '@angular/animations';
+import { DOCUMENT } from '@angular/common';
 import { Component, DestroyRef, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
@@ -12,16 +13,25 @@ import { Store } from '@ngxs/store';
 import cdf from '@stdlib/stats-base-dists-normal-cdf';
 import quantile from '@stdlib/stats-base-dists-normal-quantile';
 import moment, { Moment } from 'moment';
-import { Subject, Subscription, animationFrameScheduler, combineLatest, finalize, fromEvent, map, takeUntil, throttleTime } from 'rxjs';
+import { Subject, animationFrameScheduler, combineLatest, finalize, fromEvent, map, takeUntil, throttleTime } from 'rxjs';
 
 import { CoreModule } from '~/core';
 import { AssetsState } from '~/state/clients/assets.state';
 import { PeopleState } from '~/state/clients/people.state';
 import { PatchStage, StagesState } from '~/state/clients/plans/stages.state';
+import { Portfolio, UnrolledStage } from '~/state/clients/plans/stages.state.model';
 import { GraphsState } from '~/state/graphs.state';
-import { GraphDelta, calculateCycles } from './cycle-calculation';
-import type { CycleData } from './cycle.worker'
-import { DOCUMENT } from '@angular/common';
+import { GraphDelta, calculateCycle } from './cycle-calculation';
+import type { CycleData } from './cycle.worker';
+
+type CyclesData = {
+  monthsPerCycle: number,
+  startYear: number,
+  endYear: number,
+  initialPortfolio: Portfolio,
+  stages: UnrolledStage[],
+  deltas: GraphDelta[]
+};
 
 @Component({
   selector: 'app-overview',
@@ -179,15 +189,15 @@ export class OverviewComponent {
   });
   xHoverPoint = computed(() => {
     const hoverPoint = this.hoverPoint();
-    // if (!hoverPoint) return null;
+    const hoveredStage = this.hoveredStage();
 
     const computeLabel =
       hoverPoint ? (startYear: number) => ({
         x: hoverPoint.median.x,
         label: startYear + Math.floor(hoverPoint.median.x / (this.xUnit() * 12))
       })
-      : this.xStageHoverYear() ? (startYear: number) => {
-        const years = this.xStageHoverYear()! - this.now().year();
+      : hoveredStage ? (startYear: number) => {
+        const years = hoveredStage.endYear - this.now().year();
 
         return {
           x: 300 * years / this.xVisibleYears(),
@@ -198,19 +208,12 @@ export class OverviewComponent {
 
     if (!computeLabel) return null;
 
-    // const x = hoverPoint.median.x;
-    // const xUnit = this.xUnit() * 12;
-
     return Object.fromEntries(this.people().map(person => [
       person.id,
       computeLabel(Math.floor(this.now().diff(person.dateOfBirth, 'years')))
-      // {
-      //   x: x,
-      //   label: `${Math.floor(this.now().diff(person.dateOfBirth, 'years')) + Math.floor(x / xUnit)}`
-      // }
     ]));
   });
-  xStageHoverYear = signal<number | null>(null);
+  hoveredStage = signal<{ id: string; endYear: number; } | null>(null);
   xLabelWidth = computed(() => {
     const xRemainder = this.xVisibleYears() - this.xInterval() * (this.xCount - 1);
     const labelledXPortion = (this.xVisibleYears() - xRemainder) / this.xVisibleYears();
@@ -414,42 +417,60 @@ export class OverviewComponent {
   mouseMoved = new Subject<MouseEvent | null>();
 
   constructor() {
-    const canUseWorkers = typeof Worker !== 'undefined';
-    let cycleWorker: Worker | undefined;
-    let cycleWorkerListener: ((ev: MessageEvent) => void) | undefined;
+    const cycleWorker = typeof Worker !== 'undefined'
+      ? new Worker(new URL('./cycle.worker', import.meta.url))
+      : undefined;
 
-    const cycleData$ = new Subject<CycleData>();
+    let cycleJobId = 0;
+    const cycleData$ = new Subject<CyclesData>();
 
     cycleData$
       .pipe(
-        throttleTime(500, animationFrameScheduler, { leading: true, trailing: true }),
+        throttleTime(100, animationFrameScheduler, { leading: true, trailing: true }),
         takeUntilDestroyed()
       )
-      .subscribe(data => {
-        if (canUseWorkers) {
-          if (cycleWorkerListener)
-            cycleWorker?.removeEventListener('message', cycleWorkerListener);
+      .subscribe(async data => {
+        const jobId = ++cycleJobId;
+        const cycles: number[][] = [];
+        const months = [...new Array(data.deltas.length - data.monthsPerCycle)].map((_, index) => index);
 
-          cycleWorker?.terminate();
+        for (const month of months) {
+          const cycleData: CycleData = [
+            data.startYear,
+            data.endYear,
+            data.initialPortfolio,
+            data.stages,
+            data.deltas.slice(month, month + data.monthsPerCycle)
+          ];
 
-          cycleWorker = new Worker(new URL('./cycle.worker', import.meta.url));
-          cycleWorkerListener = event => this.cycles.set(event.data);
-          cycleWorker.onmessage = cycleWorkerListener;
-          cycleWorker.postMessage(data);
-        } else {
-          this.cycles.set(calculateCycles(...data));
+          if (cycleWorker) {
+            if (jobId !== cycleJobId) return;
+
+            const cycle = await new Promise<number[]>(resolve => {
+              const listener = (event: MessageEvent<any>) => {
+                cycleWorker.removeEventListener('message', listener);
+                resolve(event.data);
+              };
+              cycleWorker.addEventListener('message', listener);
+              cycleWorker.postMessage(cycleData);
+            });
+            cycles.push(cycle);
+          } else {
+            cycles.push(calculateCycle(...cycleData));
+          }
         }
+        this.cycles.set(cycles);
       })
 
     effect(() => {
-      const data: CycleData = [
-        this.monthsPerCycle(),
-        this.now().year(),
-        this.maxYear(),
-        this.initialPortfolio(),
-        this.stages(),
-        this.deltas()
-      ];
+      const data: CyclesData = {
+        monthsPerCycle: this.monthsPerCycle(),
+        startYear: this.now().year(),
+        endYear: this.maxYear(),
+        initialPortfolio: this.initialPortfolio(),
+        stages: this.stages(),
+        deltas: this.deltas()
+      };
 
       cycleData$.next(data);
     }, { allowSignalWrites: true });
@@ -523,11 +544,12 @@ export class OverviewComponent {
     event.preventDefault();
 
     const stage = this.store.selectSnapshot(StagesState.stages).find(({ id }) => id === stageId);
-    if (!stage || stage.endYear === undefined) return;
+    const originalEndYear = stage?.endYear;
+    if (!stage || originalEndYear === undefined) return;
 
     const startX = event.pageX;
     const xPerYear = this.stagesElement().nativeElement.clientWidth / this.xVisibleYears();
-    const originalEndYear = stage.endYear;
+    this.hoveredStage.set({ id: stage.id, endYear: originalEndYear });
 
     fromEvent<MouseEvent>(this.document, 'mousemove')
       .pipe(
@@ -535,12 +557,12 @@ export class OverviewComponent {
         takeUntil(fromEvent(this.document, 'mouseup')),
         throttleTime(50, animationFrameScheduler, { leading: false, trailing: true }),
         finalize(() => {
-          this.xStageHoverYear.set(null);
+          this.hoveredStage.set(null);
         })
       )
       .subscribe(({ pageX }) => {
         const endYear = Math.round(originalEndYear + (pageX - startX) / xPerYear);
-        this.xStageHoverYear.set(endYear);
+        this.hoveredStage.set({ id: stage.id, endYear });
         this.store.dispatch(new PatchStage(stageId, { endYear }));
       });
   }

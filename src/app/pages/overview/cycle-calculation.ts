@@ -9,24 +9,9 @@ export type GraphDelta = {
   crypto: number;
 };
 
-export const calculateCycles = (
-  monthsPerCycle: number,
+export const calculateCycle = (
   startYear: number,
   endYear: number,
-  initialPortfolio: Portfolio,
-  stages: UnrolledStage[],
-  deltas: GraphDelta[]
-) => [...new Array(deltas.length - monthsPerCycle)].map((_, m) => calculateCycle(
-  startYear,
-  endYear,
-  initialPortfolio,
-  stages,
-  deltas.slice(m, m + monthsPerCycle)
-));
-
-const calculateCycle = (
-  startYear: number,
-  maxYear: number,
   initialPortfolio: Portfolio,
   stages: UnrolledStage[],
   deltas: GraphDelta[],
@@ -38,9 +23,9 @@ const calculateCycle = (
   const data = [Object.values(portfolio).reduce((total, value) => total + value, 0)];
 
   for (const stage of stages) {
-    const endYear = Math.min(stage.endYear ?? maxYear, maxYear);
+    const stageEndYear = Math.min(stage.endYear ?? endYear, endYear);
 
-    for (; startYear + year < endYear; ++year) {
+    for (; startYear + year < stageEndYear; ++year) {
       const yearlyIncome = Object.values(stage.incomeByPerson).reduce((total, value) => total + value, 0) * totalInflation;
 
       const startOfYearTotal = Object.values(portfolio).reduce((total, value) => total + value, 0);

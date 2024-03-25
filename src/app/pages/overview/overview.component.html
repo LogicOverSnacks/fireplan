@@ -212,7 +212,7 @@
         >
           <span class="name">{{stage.name}}</span>
           @if (!last) {
-            <div class="handle" (mousedown)="stageDragged(stage.id, $event)"></div>
+            <div class="handle" [class.hovered]="hoveredStage()?.id === stage.id" (mousedown)="stageDragged(stage.id, $event)"></div>
           }
         </div>
       }
