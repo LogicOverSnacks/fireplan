@@ -32,6 +32,10 @@ export type DynamicWithdrawalScheme = {
   // frequency: number;
 };
 
+// Only sell stocks when stocks are at an all-time high
+// Otherwise fund withdrawals using cash or bonds.
+// ? When stocks are at an all-time low, sell some bonds to buy stock ?
+// ? Maybe only if the low has already been going on for more than 2 years ?
 // export type CashRefillWithdrawalScheme = {
 //   type: 'cash-refill';
 //   initialPercentage: number; // 4% (how much of the initial portfolio to use as the starting withdrawal rate)

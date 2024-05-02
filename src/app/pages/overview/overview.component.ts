@@ -72,7 +72,7 @@ export class OverviewComponent {
   );
   logarithmicViewCtrl = new FormControl(false, { nonNullable: true });
   logarithmicView = toSignal(this.logarithmicViewCtrl.valueChanges, { initialValue: this.logarithmicViewCtrl.value });
-  displayMedianCtrl = new FormControl(true, { nonNullable: true });
+  displayMedianCtrl = new FormControl(false, { nonNullable: true });
   displayHoverCtrl = new FormControl(true, { nonNullable: true });
 
   hoverPoint = signal<{
@@ -150,7 +150,7 @@ export class OverviewComponent {
   initialPortfolio = signal({
     cash: 0,
     bonds: 0,
-    stocks: 360000,
+    stocks: 280000,
     crypto: 0
   });
   initialTotal = computed(() => Object.values(this.initialPortfolio()).reduce((total, value) => total + value, 0));
