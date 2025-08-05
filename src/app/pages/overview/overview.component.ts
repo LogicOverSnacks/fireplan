@@ -23,6 +23,7 @@ import { Portfolio, UnrolledStage } from '~/state/clients/plans/stages.state.mod
 import { GraphsState } from '~/state/graphs.state';
 import { GraphDelta, calculateCycle } from './cycle-calculation';
 import type { CycleData } from './cycle.worker';
+import { PlansState, UpdatePlanPortfolioTotal } from '~/state/clients/plans.state';
 
 type CyclesData = {
   monthsPerCycle: number,
@@ -62,6 +63,7 @@ export class OverviewComponent {
 
   stagesElement = viewChild.required<ElementRef<HTMLElement>>('stages');
   svg = viewChild.required<ElementRef<SVGElement>>('svg');
+  portfolioControl = new FormControl(0, { nonNullable: true });
   percentileControl = new FormControl(90, { nonNullable: true });
   percentile = toSignal(
     this.percentileControl.valueChanges.pipe(
@@ -83,7 +85,7 @@ export class OverviewComponent {
   } | null>(null);
   now = computed(() => moment());
   maxYear = toSignal(this.store.select(PeopleState.maxYear(3)), { requireSync: true });
-  graphResolution = signal(37);
+  graphResolution = signal(27);
 
   yearsPerCycle = computed(() => this.maxYear() - this.now().year());
   monthsPerCycle = computed(() => this.yearsPerCycle() * 12);
@@ -147,12 +149,40 @@ export class OverviewComponent {
     });
   });
   // toSignal(store.select(AssetsState.portfolioTotals), { requireSync: true })
-  initialPortfolio = signal({
-    cash: 0,
-    bonds: 0,
-    stocks: 280000,
-    crypto: 0
-  });
+  initialPortfolio = toSignal(
+    this.store.select(PlansState.initialPortfolioTotal).pipe(map(total => ({
+      cash: 0,
+      bonds: 0,
+      stocks: total,
+      crypto: 0
+    }))),
+    { requireSync: true }
+  );
+
+  //   this.portfolioControl.valueChanges.pipe(
+  //     throttleTime(500, undefined, { leading: true, trailing: true }),
+  //     map(total => ({
+  //       cash: 0,
+  //       bonds: 0,
+  //       stocks: total,
+  //       crypto: 0
+  //     }))
+  //   ),
+  //   {
+  //     initialValue: {
+  //       cash: 0,
+  //       bonds: 0,
+  //       stocks: this.portfolioControl.value,
+  //       crypto: 0
+  //     }
+  //   }
+  // );
+  // initialPortfolio = signal({
+  //   cash: 0,
+  //   bonds: 0, // 100000 * 0.4,
+  //   stocks: 600000,
+  //   crypto: 0
+  // });
   initialTotal = computed(() => Object.values(this.initialPortfolio()).reduce((total, value) => total + value, 0));
 
   xVisibleYears = computed(() => {
@@ -227,7 +257,7 @@ export class OverviewComponent {
     ? Math.max(...this.points().boundaries[this.points().boundaries.length - 1], 0)
     : Math.min(
       Math.max(...this.points().boundaries[this.points().boundaries.length - 1], 0),
-      Math.max(...this.points().median, 0) * 1.5,
+      Math.max(...this.points().median, 0) * 1,
       this.initialTotal() * 20
     )
   );
@@ -417,6 +447,21 @@ export class OverviewComponent {
   mouseMoved = new Subject<MouseEvent | null>();
 
   constructor() {
+    this.store.select(PlansState.initialPortfolioTotal)
+      .pipe(takeUntilDestroyed())
+      .subscribe(total => {
+        this.portfolioControl.setValue(total, { emitEvent: false });
+      });
+
+    this.portfolioControl.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(total => {
+        const planId = this.store.selectSnapshot(PlansState.selectedPlanId);
+        if (planId) {
+          this.store.dispatch(new UpdatePlanPortfolioTotal(planId, total)).subscribe();
+        }
+      });
+
     const cycleWorker = typeof Worker !== 'undefined'
       ? new Worker(new URL('./cycle.worker', import.meta.url))
       : undefined;

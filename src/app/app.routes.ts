@@ -11,11 +11,11 @@ import { StagesComponent } from './pages/stages/stages.component';
 
 export const routes: Routes = [
   { path: '', component: OverviewComponent, data: { title: 'Overview' } },
-  { path: 'assets', component: AssetsComponent, data: { title: 'Assets' } },
+  { path: 'assets', component: AssetsComponent, data: { title: 'Assets', hide: true } },
   { path: 'clients', component: ClientsComponent, data: { title: 'Clients', hide: true } },
-  { path: 'events', component: EventsComponent, data: { title: 'Events' } },
+  { path: 'events', component: EventsComponent, data: { title: 'Events', hide: true } },
   { path: 'graphs', component: GraphsComponent, data: { title: 'Graphs', hide: true } },
   { path: 'people', component: PeopleComponent, data: { title: 'People' } },
-  { path: 'plans', component: PlansComponent, data: { title: 'Plans' } },
+  { path: 'plans', component: PlansComponent, data: { title: 'Plans', hide: true } },
   { path: 'stages', component: StagesComponent, data: { title: 'Stages' } },
 ];

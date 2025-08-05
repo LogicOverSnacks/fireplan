@@ -221,3 +221,26 @@
 } @else {
   <mat-spinner></mat-spinner>
 }
+
+<br>
+
+<h2>Portfolio</h2>
+
+<form>
+  <mat-form-field floatLabel="always" subscriptSizing="dynamic" appearance="outline">
+    <mat-label>Starting assets</mat-label>
+    <input type="number" matInput [formControl]="portfolioControl">
+    <!-- <input [style.display]="'none'" matInput hidden>
+    <mat-slider class="portfolio-slider"
+      color="accent"
+      min="0"
+      max="100"
+      step="1"
+      discrete
+      [displayWith]="sliderDisplay"
+    >
+      <input matSliderThumb [formControl]="portfolioControl" #portfolioSlider>
+    </mat-slider> -->
+  </mat-form-field>
+</form>
+

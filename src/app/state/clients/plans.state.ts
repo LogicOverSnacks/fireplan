@@ -9,9 +9,14 @@ export class AddOrReplacePlan {
   constructor(public id: string, public plan: Plan) {}
 }
 
+export class UpdatePlanPortfolioTotal {
+  static readonly type = '[Plans] UpdatePlanPortfolioTotal';
+  constructor(public id: string, public total: number) {}
+}
+
 export class UpdatePlan {
   static readonly type = '[Plans] UpdatePlan';
-  constructor(public id: string, public inheritsFrom: string | null, public name: string) {}
+  constructor(public id: string, public inheritsFrom: string | null, public name: string, public initialPortfolioTotal?: number) {}
 }
 
 export class DeletePlan {
@@ -41,6 +46,13 @@ export class PlansState {
     return PlansState.unrollPlan(client.plans, client.plans[client.selectedPlanId]);
   }
 
+  @Selector([ClientsState.currentClient])
+  static initialPortfolioTotal(client: Client) {
+    if (client.selectedPlanId === null) throw new Error(`No plan selected`);
+    const plan = PlansState.unrollPlan(client.plans, client.plans[client.selectedPlanId]);
+    return plan.initialPortfolioTotal;
+  }
+
   static unrollPlan(plans: Record<string, Plan>, plan: Plan): UnrolledPlan {
     if (plan.inheritsFrom === null) return plan;
 
@@ -61,6 +73,28 @@ export class PlansState {
     }));
   }
 
+  @ClientAction(UpdatePlanPortfolioTotal)
+  updatePlanPortfolioTotal(ctx: StateContext<Client>, action: UpdatePlanPortfolioTotal) {
+    ctx.setState(client => {
+      const plan = client.plans[action.id];
+      if (!plan)
+        throw new Error(`Plan with id ${action.id} doesn't exist`);
+
+      const newPlan = {
+        ...plan,
+        initialPortfolioTotal: action.total
+      };
+
+      return {
+        ...client,
+        plans: {
+          ...client.plans,
+          [action.id]: newPlan
+        }
+      };
+    });
+  }
+
   @ClientAction(UpdatePlan)
   updatePlan(ctx: StateContext<Client>, action: UpdatePlan) {
     ctx.setState(client => {
@@ -77,13 +111,15 @@ export class PlansState {
         newPlan = {
           inheritsFrom: null,
           name: action.name,
-          stages: plan.stages
+          initialPortfolioTotal: action.initialPortfolioTotal ?? plan.initialPortfolioTotal,
+          stages: plan.stages,
         };
       } else {
         newPlan = {
           ...plan,
           inheritsFrom: action.inheritsFrom,
-          name: action.name
+          name: action.name,
+          initialPortfolioTotal: action.initialPortfolioTotal ?? plan.initialPortfolioTotal,
         };
       }
 

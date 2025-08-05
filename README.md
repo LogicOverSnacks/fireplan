@@ -13,3 +13,6 @@ CPIH rates:
   * https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/l55o/mm23
   * https://www.ons.gov.uk/economy/inflationandpriceindices/methodologies/consumerpriceinflationhistoricalestimatesuk1950to1988methodology
   * https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/cdsi/mm23
+
+### Life expectancy
+  * https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/lifeexpectancies/bulletins/nationallifetablesunitedkingdom/2020to2022

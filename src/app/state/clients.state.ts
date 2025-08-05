@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Action, ActionOptions, ActionType, Selector, State, StateContext, StateOperator } from '@ngxs/store';
+import { default as moment } from 'moment';
 
 import { Client, ClientsStateModel } from './clients.state.model';
 import { Plan } from './clients/plans.state.model';
@@ -31,16 +32,92 @@ export class ChangeSelectedClient {
 const createClient = (id: number) => {
   const planId = crypto.randomUUID();
 
+  const personId = crypto.randomUUID();
+
   return {
     archived: false,
     name: `Client ${id}`,
     currency: 'GBP',
-    people: [],
+    people: [
+      {
+        id: personId,
+        name: 'Mike',
+        dateOfBirth: moment('1990-03-16T00:00:00.000Z'),
+        lifeExpectancy: { mean: 81, variance: 8 }
+      }
+    ],
     plans: {
       [planId]: {
         inheritsFrom: null,
         name: 'Default',
-        stages: []
+        initialPortfolioTotal: 100000,
+        stages: [
+          {
+            id: crypto.randomUUID(),
+            name: 'Working',
+            deletable: true,
+            endYear: 2040,
+            incomeByPerson: {
+              [personId]: 50000
+            },
+            portfolioDistribution: {
+              cash: 0,
+              bonds: 0,
+              stocks: 1,
+              crypto: 0,
+            },
+            portfolioRedistributionFrequency: 1,
+            withdrawal: {
+              type: 'constant',
+              initialRate: 35000
+            }
+          },
+          {
+            id: crypto.randomUUID(),
+            name: 'Early Retirement',
+            deletable: true,
+            endYear: 2060,
+            incomeByPerson: {
+              [personId]: 0
+            },
+            portfolioDistribution: {
+              cash: 0,
+              bonds: 0,
+              stocks: 1,
+              crypto: 0,
+            },
+            portfolioRedistributionFrequency: 1,
+            withdrawal: {
+              type: 'dynamic',
+              targetPercentage: 4,
+              thresholdPercentage: 20,
+              adjustmentPercentage: 5,
+              minimumRate: 35000
+            }
+          },
+          {
+            id: crypto.randomUUID(),
+            name: 'State Pension',
+            deletable: true,
+            incomeByPerson: {
+              [personId]: 12000
+            },
+            portfolioDistribution: {
+              cash: 0,
+              bonds: 0.2,
+              stocks: 0.8,
+              crypto: 0,
+            },
+            portfolioRedistributionFrequency: 1,
+            withdrawal: {
+              type: 'dynamic',
+              targetPercentage: 4,
+              thresholdPercentage: 20,
+              adjustmentPercentage: 5,
+              minimumRate: 30000
+            }
+          },
+        ]
       }
     },
     selectedPlanId: planId,
@@ -295,7 +372,8 @@ export function PlanAction(
               newPlan = {
                 inheritsFrom: null,
                 name: val.name ?? plan.name,
-                stages: plan.stages
+                stages: plan.stages,
+                initialPortfolioTotal: plan.initialPortfolioTotal,
               };
             } else {
               if (plan.inheritsFrom === null) {

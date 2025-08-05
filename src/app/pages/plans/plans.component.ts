@@ -38,10 +38,12 @@ export class PlansComponent {
             ? {
               inheritsFrom: null,
               name: data.name,
+              initialPortfolioTotal: 100000,
               stages: []
             }
             : {
               inheritsFrom: data.inheritsFrom,
+              initialPortfolioTotal: 100000,
               name: data.name
             };
           this.store.dispatch(new AddOrReplacePlan(data.id, plan));
