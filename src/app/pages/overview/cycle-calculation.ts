@@ -1,5 +1,4 @@
-import { mapRecord } from '~/core';
-import { DynamicWithdrawalScheme, Portfolio, UnrolledStage } from '~/state/clients/plans/stages.state.model';
+import type { DynamicWithdrawalScheme, Portfolio, UnrolledStage } from '~/state/clients/plans/stages.state.model';
 
 export type GraphDelta = {
   inflation: number;
@@ -8,6 +7,11 @@ export type GraphDelta = {
   stocks: number;
   crypto: number;
 };
+
+const mapRecord = <T extends Record<any, any>, R = T[keyof T]>(
+  record: T,
+  projection: (pair: [keyof T, T[keyof T]]) => [keyof T, R]
+): Record<keyof T, R> => Object.fromEntries(Object.entries(record).map(([k, v]) => projection([k, v]))) as any;
 
 export const calculateCycle = (
   startYear: number,
